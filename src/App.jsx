@@ -3,7 +3,8 @@ import { BookOpen, AlertCircle, CheckCircle, XCircle, RotateCcw, List, Bookmark,
 
 const DBDQuizApp = () => {
   const [mode, setMode] = useState('menu');
-  const [selectedTopic, setSelectedTopic] = useState(null);
+  // CAMBIO CLAVE: Ahora almacena un ARRAY de temas seleccionados.
+  const [selectedTopics, setSelectedTopics] = useState([]); 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [showResult, setShowResult] = useState(false);
@@ -12,7 +13,7 @@ const DBDQuizApp = () => {
   const [markedQuestions, setMarkedQuestions] = useState([]);
   const [reviewMode, setReviewMode] = useState(false);
   const [markedMode, setMarkedMode] = useState(false);
-
+  
   // ------------------------------------------------------------------
   // 1. ESTRUCTURA DE DATOS A RELLENAR (El objeto de Preguntas)
   // ------------------------------------------------------------------
@@ -3552,7 +3553,6 @@ const DBDQuizApp = () => {
 
   // ------------------------------------------------------------------
   // 2. MUEVE EL CÓDIGO DE LAS FUNCIONES DE GENERACIÓN A useMemo
-  //    (Esto genera los objetos que el quiz necesita automáticamente)
   // ------------------------------------------------------------------
   const { questionsData, answers, topics } = useMemo(() => {
     const data = {};
@@ -3560,27 +3560,23 @@ const DBDQuizApp = () => {
     const top = {};
 
     allQuestionsArray.forEach(q => {
-      // a) Crear el mapeo principal (questionsData)
       data[q.id] = q;
-      // b) Crear el mapeo de respuestas (answers)
       ans[q.id] = q.correctAnswer;
       
-      // c) Crear el mapeo de temas (topics) con rangos de IDs
       if (!top[q.topic]) {
-        top[q.topic] = { start: q.id, end: q.id };
-      } else {
-        top[q.topic].end = q.id;
+        top[q.topic] = { start: q.id, end: q.id, count: 0 };
       }
+      top[q.topic].end = q.id;
+      top[q.topic].count += 1; // Contar el total de preguntas por tema
     });
 
     return { questionsData: data, answers: ans, topics: top };
-  }, [allQuestionsArray]); // Se recalcula si el array cambia
+  }, [allQuestionsArray]);
 
   // ------------------------------------------------------------------
-  // 3. LÓGICA DEL QUIZ (Mantenida de tu código original)
+  // 3. LÓGICA DEL QUIZ 
   // ------------------------------------------------------------------
   
-  // Función para mezclar array (Fisher-Yates shuffle)
   const shuffleArray = (array) => {
     const shuffled = [...array];
     for (let i = shuffled.length - 1; i > 0; i--) {
@@ -3590,29 +3586,33 @@ const DBDQuizApp = () => {
     return shuffled;
   };
 
-  // Esta función obtiene el listado de IDs a preguntar, basado en el modo
+  // FUNCIÓN ACTUALIZADA para manejar múltiples temas o ningún tema (todos)
   const getQuestionsForMode = () => {
     let questions = [];
+    
     if (markedMode && markedQuestions.length > 0) {
       questions = [...markedQuestions];
     } else if (reviewMode && incorrectQuestions.length > 0) {
       questions = [...incorrectQuestions];
-    } else if (selectedTopic) {
-      const range = topics[selectedTopic];
-      // Solo incluimos IDs que realmente existen en el questionsData (mejorando el rango)
-      for (let i = range.start; i <= range.end; i++) {
-        if (questionsData[i]) {
-            questions.push(i);
+    } else if (selectedTopics.length > 0) {
+      // Filtrar por los temas seleccionados
+      const topicsToInclude = selectedTopics;
+
+      allQuestionsArray.forEach(q => {
+        if (topicsToInclude.includes(q.topic)) {
+          questions.push(q.id);
         }
-      }
+      });
+      
     } else {
-      questions = Object.keys(answers).map(Number); // Todas las preguntas
+      // Por defecto, si no hay modo especial y no hay temas seleccionados, toma TODAS
+      questions = Object.keys(answers).map(Number);
     }
     
     return shuffleArray(questions);
   };
 
-  const currentQuestions = useMemo(() => getQuestionsForMode(), [mode, selectedTopic, reviewMode, markedMode, topics]);
+  const currentQuestions = useMemo(() => getQuestionsForMode(), [mode, selectedTopics, reviewMode, markedMode, topics]);
   const currentQuestion = currentQuestions[currentQuestionIndex];
   
   const handleAnswer = (answer) => {
@@ -3646,13 +3646,15 @@ const DBDQuizApp = () => {
     setShowResult(false);
     setScore({ correct: 0, incorrect: 0 });
     setMode('menu');
-    setSelectedTopic(null);
+    setSelectedTopics([]); // Reiniciar temas seleccionados
     setReviewMode(false);
     setMarkedMode(false);
   };
 
-  const startQuiz = (topic = null, isReview = false, isMarked = false) => {
-    setSelectedTopic(topic);
+  // Función de inicio simple, usa el estado de temas seleccionados
+  const startQuiz = (isReview = false, isMarked = false) => {
+    // Si estamos en modo repaso o marcadas, forzamos el modo especial.
+    // Si no, usamos los temas seleccionados (o todos si el array está vacío).
     setReviewMode(isReview);
     setMarkedMode(isMarked);
     setCurrentQuestionIndex(0);
@@ -3669,12 +3671,33 @@ const DBDQuizApp = () => {
       setMarkedQuestions(prev => [...prev, currentQuestion]);
     }
   };
-  
+
+  // Función para manejar la selección múltiple de temas
+  const handleTopicToggle = (topic) => {
+    setSelectedTopics(prev => {
+      if (prev.includes(topic)) {
+        return prev.filter(t => t !== topic);
+      } else {
+        return [...prev, topic];
+      }
+    });
+  };
+
   // ------------------------------------------------------------------
-  // MENU MODE 
+  // MENU MODE (Interfaz de selección de temas)
   // ------------------------------------------------------------------
   if (mode === 'menu') {
     const totalQuestions = Object.keys(questionsData).length;
+    const allTopics = Object.keys(topics);
+    const questionsInSelectedTopics = allQuestionsArray.filter(q => selectedTopics.includes(q.topic)).length;
+
+    const toggleSelectAll = () => {
+      if (selectedTopics.length === allTopics.length) {
+        setSelectedTopics([]); // Deseleccionar todos
+      } else {
+        setSelectedTopics(allTopics); // Seleccionar todos
+      }
+    };
     
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
@@ -3684,86 +3707,119 @@ const DBDQuizApp = () => {
             <p className="text-gray-600">Disseny de Bases de Dades - Test Interactivo</p>
           </div>
 
-          {incorrectQuestions.length > 0 && (
-            <div className="bg-amber-50 border-2 border-amber-300 rounded-lg p-6 mb-6">
-              <div className="flex items-center gap-3 mb-3">
-                <AlertCircle className="text-amber-600" size={28} />
-                <h2 className="text-xl font-bold text-amber-900">Preguntas Falladas</h2>
+          {/* Sección de Repaso y Marcadas (Manteniendo tu funcionalidad) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            {incorrectQuestions.length > 0 && (
+              <div className="bg-amber-50 border-2 border-amber-300 rounded-lg p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <AlertCircle className="text-amber-600" size={28} />
+                  <h2 className="text-xl font-bold text-amber-900">Preguntas Falladas</h2>
+                </div>
+                <p className="text-gray-700 mb-4">{incorrectQuestions.length} preguntas pendientes de repasar.</p>
+                <button
+                  onClick={() => startQuiz(true, false)}
+                  className="bg-amber-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-amber-700 transition flex items-center gap-2 justify-center w-full"
+                >
+                  <RotateCcw size={20} />
+                  Repasar Falladas
+                </button>
               </div>
-              <p className="text-gray-700 mb-4">
-                Tienes {incorrectQuestions.length} pregunta{incorrectQuestions.length !== 1 ? 's' : ''} pendiente{incorrectQuestions.length !== 1 ? 's' : ''} de repasar
-              </p>
-              <button
-                onClick={() => startQuiz(null, true, false)}
-                className="bg-amber-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-amber-700 transition flex items-center gap-2"
-              >
-                <RotateCcw size={20} />
-                Repasar Preguntas Falladas
-              </button>
-            </div>
-          )}
+            )}
 
-          {markedQuestions.length > 0 && (
-            <div className="bg-purple-50 border-2 border-purple-300 rounded-lg p-6 mb-6">
-              <div className="flex items-center gap-3 mb-3">
-                <BookmarkCheck className="text-purple-600" size={28} />
-                <h2 className="text-xl font-bold text-purple-900">Preguntas Marcadas</h2>
+            {markedQuestions.length > 0 && (
+              <div className="bg-purple-50 border-2 border-purple-300 rounded-lg p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <BookmarkCheck className="text-purple-600" size={28} />
+                  <h2 className="text-xl font-bold text-purple-900">Preguntas Marcadas</h2>
+                </div>
+                <p className="text-gray-700 mb-4">{markedQuestions.length} preguntas marcadas para revisar.</p>
+                <button
+                  onClick={() => startQuiz(false, true)}
+                  className="bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition flex items-center gap-2 justify-center w-full"
+                >
+                  <BookmarkCheck size={20} />
+                  Revisar Marcadas
+                </button>
               </div>
-              <p className="text-gray-700 mb-4">
-                Tienes {markedQuestions.length} pregunta{markedQuestions.length !== 1 ? 's' : ''} marcada{markedQuestions.length !== 1 ? 's' : ''} para revisar
-              </p>
-              <button
-                onClick={() => startQuiz(null, false, true)}
-                className="bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition flex items-center gap-2"
-              >
-                <BookmarkCheck size={20} />
-                Revisar Preguntas Marcadas
-              </button>
-            </div>
-          )}
-
+            )}
+          </div>
+          
+          {/* SECCIÓN DE SELECCIÓN DE TEMAS (El cambio principal) */}
           <div className="bg-white rounded-lg shadow-xl p-6 mb-6">
             <div className="flex items-center gap-3 mb-4">
               <BookOpen className="text-indigo-600" size={28} />
-              <h2 className="text-2xl font-bold text-gray-800">Practicar por Temas</h2>
+              <h2 className="text-2xl font-bold text-gray-800">Seleccionar Temas para el Test</h2>
             </div>
-            <div className="grid gap-3">
-              {Object.keys(topics).map((topic) => (
-                <button
+
+            <div className="grid gap-3 mb-6">
+              {/* Botón para seleccionar/deseleccionar todos */}
+              <button
+                onClick={toggleSelectAll}
+                className={`w-full p-3 rounded-lg font-semibold transition text-sm flex items-center justify-between ${
+                  selectedTopics.length === allTopics.length
+                    ? 'bg-red-100 text-red-700 border-2 border-red-400'
+                    : 'bg-indigo-100 text-indigo-700 border-2 border-indigo-400 hover:bg-indigo-200'
+                }`}
+              >
+                {selectedTopics.length === allTopics.length ? 
+                  'Deseleccionar Todos' : `Seleccionar Todos (${totalQuestions} preguntas)`}
+              </button>
+
+              {/* Lista de Checkboxes por Tema */}
+              {allTopics.map((topic) => (
+                <div
                   key={topic}
-                  onClick={() => startQuiz(topic)}
-                  className="text-left p-4 border-2 border-gray-200 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition"
+                  onClick={() => handleTopicToggle(topic)}
+                  className={`flex items-center justify-between p-4 border-2 rounded-lg cursor-pointer transition ${
+                    selectedTopics.includes(topic)
+                      ? 'border-indigo-500 bg-indigo-50'
+                      : 'border-gray-200 hover:border-gray-400'
+                  }`}
                 >
-                  <div className="font-semibold text-gray-800">{topic}</div>
-                  <div className="text-sm text-gray-500">
-                    Preguntas {topics[topic].start} - {topics[topic].end} ({topics[topic].end - topics[topic].start + 1} preguntas)
+                  <div className="flex flex-col text-left">
+                    <div className="font-semibold text-gray-800">{topic}</div>
+                    <div className="text-sm text-gray-500">{topics[topic].count} preguntas</div>
                   </div>
-                </button>
+                  <input
+                    type="checkbox"
+                    checked={selectedTopics.includes(topic)}
+                    readOnly
+                    className="h-5 w-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                  />
+                </div>
               ))}
             </div>
-          </div>
 
-          <div className="bg-white rounded-lg shadow-xl p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <List className="text-green-600" size={28} />
-              <h2 className="text-2xl font-bold text-gray-800">Todas las Preguntas</h2>
-            </div>
+            {/* Botón de Inicio del Test */}
             <button
               onClick={() => startQuiz()}
-              className="w-full bg-green-600 text-white px-6 py-4 rounded-lg font-semibold hover:bg-green-700 transition text-lg"
+              disabled={selectedTopics.length === 0}
+              className={`w-full px-6 py-4 rounded-lg font-semibold transition text-lg flex items-center justify-center gap-2 ${
+                selectedTopics.length > 0
+                  ? 'bg-green-600 text-white hover:bg-green-700'
+                  : 'bg-gray-400 text-gray-600 cursor-not-allowed'
+              }`}
             >
-              Empezar Test Completo ({totalQuestions} preguntas)
+              <List size={20} />
+              Empezar Test ({questionsInSelectedTopics} preguntas)
             </button>
+            {selectedTopics.length === 0 && (
+              <p className="text-red-500 text-center mt-2">Selecciona al menos un tema para empezar el test.</p>
+            )}
           </div>
+          
+          {/* El test completo ya no es un botón separado, es la opción "Seleccionar Todos" */}
         </div>
       </div>
     );
   }
 
   // ------------------------------------------------------------------
-  // RESULTS MODE 
+  // El resto de los modos (quiz y results) no necesitan cambios.
   // ------------------------------------------------------------------
+
   if (mode === 'results') {
+    // ... Lógica de resultados sin cambios ...
     const total = score.correct + score.incorrect;
     const percentage = ((score.correct / total) * 100).toFixed(1);
     
@@ -3803,10 +3859,7 @@ const DBDQuizApp = () => {
     );
   }
 
-  // ------------------------------------------------------------------
-  // QUIZ MODE (Muestra la pregunta actual)
-  // ------------------------------------------------------------------
-  // Nos aseguramos de que la pregunta exista, si no, mostramos un error.
+  // QUIZ MODE
   const questionContent = questionsData[currentQuestion];
   if (!questionContent) {
     return (
