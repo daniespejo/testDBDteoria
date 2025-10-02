@@ -3550,7 +3550,7 @@ const DBDQuizApp = () => {
   }
  ];
 
-// ------------------------------------------------------------------
+ // ------------------------------------------------------------------
   // 2. GENERACIÓN AUTOMÁTICA DE DATOS
   // ------------------------------------------------------------------
   const { questionsData, answers, topics } = useMemo(() => {
@@ -3674,7 +3674,7 @@ const DBDQuizApp = () => {
   const totalQuestions = Object.keys(questionsData).length;
 
   // ------------------------------------------------------------------
-  // MENU MODE (Ocupando todo el ancho)
+  // MENU MODE (Contenedor más ancho centrado)
   // ------------------------------------------------------------------
   if (mode === 'menu') {
     const allTopics = Object.keys(topics);
@@ -3690,8 +3690,8 @@ const DBDQuizApp = () => {
     
     return (
       <div className="min-h-screen bg-gray-50 p-6 sm:p-10">
-        {/* CAMBIO CLAVE: quitamos max-w-5xl y mx-auto. Usamos un div intermedio para centrar el contenido principal para que no se estire demasiado si la pantalla es ENORME */}
-        <div className="max-w-7xl mx-auto"> 
+        {/* Usamos max-w-7xl y mx-auto para un ancho muy grande pero aún centrado */}
+        <div className="max-w-7xl mx-auto w-full"> 
           {/* Cabecera Centrada */}
           <div className="bg-white rounded-xl shadow-lg p-6 mb-8 border-t-4 border-indigo-600 text-center">
             <h1 className="text-3xl font-extrabold text-gray-900 flex items-center justify-center gap-3">
@@ -3784,7 +3784,6 @@ const DBDQuizApp = () => {
                 >
                   <div className="flex flex-col text-left">
                     <div className="font-medium text-gray-800">{topic}</div>
-                    <div className="text-xs text-gray-500">{topics[topic].count} preguntas</div>
                   </div>
                   <input
                     type="checkbox"
@@ -3821,7 +3820,7 @@ const DBDQuizApp = () => {
   }
 
   // ------------------------------------------------------------------
-  // RESULTS MODE (Ocupando todo el ancho)
+  // RESULTS MODE (Contenedor más ancho centrado)
   // ------------------------------------------------------------------
   if (mode === 'results') {
     const total = score.correct + score.incorrect;
@@ -3829,7 +3828,7 @@ const DBDQuizApp = () => {
     
     return (
       <div className="min-h-screen bg-gray-50 p-10 flex items-start justify-center">
-        {/* CAMBIO CLAVE: quitamos max-w-5xl. Usamos un div intermedio para centrar el contenido principal */}
+        {/* Usamos max-w-7xl y mx-auto para un ancho muy grande pero aún centrado */}
         <div className="bg-white rounded-xl shadow-2xl p-8 max-w-7xl mx-auto w-full border-t-4 border-indigo-600 text-center"> 
           <h2 className="text-3xl font-extrabold text-gray-900 mb-6">🎉 Resultados del Test 🎉</h2>
           
@@ -3865,7 +3864,7 @@ const DBDQuizApp = () => {
   }
 
   // ------------------------------------------------------------------
-  // QUIZ MODE (Ocupando todo el ancho)
+  // QUIZ MODE (Contenedor más ancho centrado)
   // ------------------------------------------------------------------
   const questionContent = questionsData[currentQuestion];
   if (!questionContent) {
@@ -3881,8 +3880,8 @@ const DBDQuizApp = () => {
   
   return (
     <div className="min-h-screen bg-gray-50 p-6 sm:p-10">
-      {/* CAMBIO CLAVE: quitamos max-w-5xl y mx-auto. Usamos un div intermedio para centrar el contenido principal */}
-      <div className="max-w-7xl mx-auto">
+      {/* Usamos max-w-7xl y mx-auto para un ancho muy grande pero aún centrado */}
+      <div className="max-w-7xl mx-auto w-full">
         <div className="bg-white rounded-xl shadow-2xl p-8 border-t-4 border-indigo-600">
           
           {/* Barra Superior e Indicadores */}
