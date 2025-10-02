@@ -1,9 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { BookOpen, AlertCircle, CheckCircle, XCircle, RotateCcw, List, Bookmark, BookmarkCheck } from 'lucide-react';
+import { BookOpen, AlertCircle, CheckCircle, XCircle, RotateCcw, List, Bookmark, BookmarkCheck, LayoutGrid, Zap, TrendingUp } from 'lucide-react';
 
 const DBDQuizApp = () => {
   const [mode, setMode] = useState('menu');
-  // CAMBIO CLAVE: Ahora almacena un ARRAY de temas seleccionados.
   const [selectedTopics, setSelectedTopics] = useState([]); 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
@@ -13,6 +12,7 @@ const DBDQuizApp = () => {
   const [markedQuestions, setMarkedQuestions] = useState([]);
   const [reviewMode, setReviewMode] = useState(false);
   const [markedMode, setMarkedMode] = useState(false);
+
   
   // ------------------------------------------------------------------
   // 1. ESTRUCTURA DE DATOS A RELLENAR (El objeto de Preguntas)
@@ -3551,8 +3551,8 @@ const DBDQuizApp = () => {
   }
  ];
 
-  // ------------------------------------------------------------------
-  // 2. MUEVE EL CÓDIGO DE LAS FUNCIONES DE GENERACIÓN A useMemo
+   // ------------------------------------------------------------------
+  // 2. GENERACIÓN AUTOMÁTICA DE DATOS
   // ------------------------------------------------------------------
   const { questionsData, answers, topics } = useMemo(() => {
     const data = {};
@@ -3564,17 +3564,16 @@ const DBDQuizApp = () => {
       ans[q.id] = q.correctAnswer;
       
       if (!top[q.topic]) {
-        top[q.topic] = { start: q.id, end: q.id, count: 0 };
+        top[q.topic] = { count: 0 };
       }
-      top[q.topic].end = q.id;
-      top[q.topic].count += 1; // Contar el total de preguntas por tema
+      top[q.topic].count += 1;
     });
 
     return { questionsData: data, answers: ans, topics: top };
   }, [allQuestionsArray]);
 
   // ------------------------------------------------------------------
-  // 3. LÓGICA DEL QUIZ 
+  // 3. LÓGICA DEL QUIZ (Optimizada con useMemo para currentQuestions)
   // ------------------------------------------------------------------
   
   const shuffleArray = (array) => {
@@ -3586,7 +3585,6 @@ const DBDQuizApp = () => {
     return shuffled;
   };
 
-  // FUNCIÓN ACTUALIZADA para manejar múltiples temas o ningún tema (todos)
   const getQuestionsForMode = () => {
     let questions = [];
     
@@ -3595,17 +3593,12 @@ const DBDQuizApp = () => {
     } else if (reviewMode && incorrectQuestions.length > 0) {
       questions = [...incorrectQuestions];
     } else if (selectedTopics.length > 0) {
-      // Filtrar por los temas seleccionados
-      const topicsToInclude = selectedTopics;
-
       allQuestionsArray.forEach(q => {
-        if (topicsToInclude.includes(q.topic)) {
+        if (selectedTopics.includes(q.topic)) {
           questions.push(q.id);
         }
       });
-      
     } else {
-      // Por defecto, si no hay modo especial y no hay temas seleccionados, toma TODAS
       questions = Object.keys(answers).map(Number);
     }
     
@@ -3646,15 +3639,12 @@ const DBDQuizApp = () => {
     setShowResult(false);
     setScore({ correct: 0, incorrect: 0 });
     setMode('menu');
-    setSelectedTopics([]); // Reiniciar temas seleccionados
+    setSelectedTopics([]);
     setReviewMode(false);
     setMarkedMode(false);
   };
 
-  // Función de inicio simple, usa el estado de temas seleccionados
   const startQuiz = (isReview = false, isMarked = false) => {
-    // Si estamos en modo repaso o marcadas, forzamos el modo especial.
-    // Si no, usamos los temas seleccionados (o todos si el array está vacío).
     setReviewMode(isReview);
     setMarkedMode(isMarked);
     setCurrentQuestionIndex(0);
@@ -3672,7 +3662,6 @@ const DBDQuizApp = () => {
     }
   };
 
-  // Función para manejar la selección múltiple de temas
   const handleTopicToggle = (topic) => {
     setSelectedTopics(prev => {
       if (prev.includes(topic)) {
@@ -3683,102 +3672,119 @@ const DBDQuizApp = () => {
     });
   };
 
+  const totalQuestions = Object.keys(questionsData).length;
+
   // ------------------------------------------------------------------
-  // MENU MODE (Interfaz de selección de temas)
+  // MENU MODE (Diseño Visual Mejorado)
   // ------------------------------------------------------------------
   if (mode === 'menu') {
-    const totalQuestions = Object.keys(questionsData).length;
     const allTopics = Object.keys(topics);
     const questionsInSelectedTopics = allQuestionsArray.filter(q => selectedTopics.includes(q.topic)).length;
 
     const toggleSelectAll = () => {
       if (selectedTopics.length === allTopics.length) {
-        setSelectedTopics([]); // Deseleccionar todos
+        setSelectedTopics([]);
       } else {
-        setSelectedTopics(allTopics); // Seleccionar todos
+        setSelectedTopics(allTopics);
       }
     };
     
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-white rounded-lg shadow-xl p-8 mb-6">
-            <h1 className="text-4xl font-bold text-indigo-900 mb-2">Práctica DBD</h1>
-            <p className="text-gray-600">Disseny de Bases de Dades - Test Interactivo</p>
+      <div className="min-h-screen bg-gray-50 p-6 sm:p-10">
+        <div className="max-w-4xl mx-auto">
+          {/* Cabecera */}
+          <div className="bg-white rounded-xl shadow-lg p-6 mb-8 border-t-4 border-indigo-600">
+            <h1 className="text-3xl font-extrabold text-gray-900 flex items-center gap-3">
+              <LayoutGrid size={32} className="text-indigo-600" />
+              DBD Quiz - Práctica
+            </h1>
+            <p className="text-gray-500 mt-1">Disseny de Bases de Dades - Selecciona tu modo de estudio.</p>
           </div>
 
-          {/* Sección de Repaso y Marcadas (Manteniendo tu funcionalidad) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            {incorrectQuestions.length > 0 && (
-              <div className="bg-amber-50 border-2 border-amber-300 rounded-lg p-6">
-                <div className="flex items-center gap-3 mb-3">
-                  <AlertCircle className="text-amber-600" size={28} />
-                  <h2 className="text-xl font-bold text-amber-900">Preguntas Falladas</h2>
-                </div>
-                <p className="text-gray-700 mb-4">{incorrectQuestions.length} preguntas pendientes de repasar.</p>
+          {/* Modos Rápidos (Falladas y Marcadas) */}
+          <h2 className="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2">
+            <Zap size={20} className="text-amber-500" />
+            Modos de Repaso Rápido
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            {incorrectQuestions.length > 0 ? (
+              <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-5 shadow-sm">
+                <AlertCircle className="text-amber-600 mb-2" size={24} />
+                <h3 className="font-bold text-amber-900">Falladas ({incorrectQuestions.length})</h3>
+                <p className="text-sm text-gray-700 mb-4">Repasa las preguntas que has respondido incorrectamente.</p>
                 <button
                   onClick={() => startQuiz(true, false)}
-                  className="bg-amber-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-amber-700 transition flex items-center gap-2 justify-center w-full"
+                  className="w-full bg-amber-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-amber-700 transition text-sm"
                 >
-                  <RotateCcw size={20} />
-                  Repasar Falladas
+                  <RotateCcw size={16} className="inline mr-2" />
+                  Iniciar Repaso
                 </button>
+              </div>
+            ) : (
+              <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-5 shadow-sm opacity-50">
+                <AlertCircle className="text-amber-600 mb-2" size={24} />
+                <h3 className="font-bold text-amber-900">Falladas (0)</h3>
+                <p className="text-sm text-gray-500 mb-4">¡Aún no tienes preguntas falladas!</p>
               </div>
             )}
 
-            {markedQuestions.length > 0 && (
-              <div className="bg-purple-50 border-2 border-purple-300 rounded-lg p-6">
-                <div className="flex items-center gap-3 mb-3">
-                  <BookmarkCheck className="text-purple-600" size={28} />
-                  <h2 className="text-xl font-bold text-purple-900">Preguntas Marcadas</h2>
-                </div>
-                <p className="text-gray-700 mb-4">{markedQuestions.length} preguntas marcadas para revisar.</p>
+            {markedQuestions.length > 0 ? (
+              <div className="bg-purple-50 border-2 border-purple-300 rounded-xl p-5 shadow-sm">
+                <BookmarkCheck className="text-purple-600 mb-2" size={24} />
+                <h3 className="font-bold text-purple-900">Marcadas ({markedQuestions.length})</h3>
+                <p className="text-sm text-gray-700 mb-4">Revisa el contenido que te interesa estudiar de nuevo.</p>
                 <button
                   onClick={() => startQuiz(false, true)}
-                  className="bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition flex items-center gap-2 justify-center w-full"
+                  className="w-full bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-700 transition text-sm"
                 >
-                  <BookmarkCheck size={20} />
-                  Revisar Marcadas
+                  <BookmarkCheck size={16} className="inline mr-2" />
+                  Iniciar Revisión
                 </button>
+              </div>
+            ) : (
+              <div className="bg-purple-50 border-2 border-purple-300 rounded-xl p-5 shadow-sm opacity-50">
+                <BookmarkCheck className="text-purple-600 mb-2" size={24} />
+                <h3 className="font-bold text-purple-900">Marcadas (0)</h3>
+                <p className="text-sm text-gray-500 mb-4">Aún no has marcado ninguna pregunta.</p>
               </div>
             )}
           </div>
-          
-          {/* SECCIÓN DE SELECCIÓN DE TEMAS (El cambio principal) */}
-          <div className="bg-white rounded-lg shadow-xl p-6 mb-6">
-            <div className="flex items-center gap-3 mb-4">
-              <BookOpen className="text-indigo-600" size={28} />
-              <h2 className="text-2xl font-bold text-gray-800">Seleccionar Temas para el Test</h2>
-            </div>
 
-            <div className="grid gap-3 mb-6">
-              {/* Botón para seleccionar/deseleccionar todos */}
-              <button
-                onClick={toggleSelectAll}
-                className={`w-full p-3 rounded-lg font-semibold transition text-sm flex items-center justify-between ${
-                  selectedTopics.length === allTopics.length
-                    ? 'bg-red-100 text-red-700 border-2 border-red-400'
-                    : 'bg-indigo-100 text-indigo-700 border-2 border-indigo-400 hover:bg-indigo-200'
-                }`}
-              >
-                {selectedTopics.length === allTopics.length ? 
-                  'Deseleccionar Todos' : `Seleccionar Todos (${totalQuestions} preguntas)`}
-              </button>
+          {/* Selección de Temas para Test */}
+          <div className="bg-white rounded-xl shadow-lg p-6 border-t-4 border-green-600">
+            <h2 className="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2">
+              <BookOpen size={20} className="text-green-600" />
+              Seleccionar Temas
+            </h2>
 
-              {/* Lista de Checkboxes por Tema */}
+            {/* Botón Seleccionar Todos */}
+            <button
+              onClick={toggleSelectAll}
+              className={`w-full p-3 rounded-lg font-semibold transition text-sm mb-4 border-2 ${
+                selectedTopics.length === allTopics.length
+                  ? 'bg-red-100 text-red-700 border-red-400 hover:bg-red-200'
+                  : 'bg-indigo-100 text-indigo-700 border-indigo-400 hover:bg-indigo-200'
+              }`}
+            >
+              {selectedTopics.length === allTopics.length ? 
+                'Deseleccionar Todos' : `Seleccionar Todos (${totalQuestions} preguntas)`}
+            </button>
+
+            {/* Lista de Checkboxes por Tema */}
+            <div className="grid gap-3 max-h-96 overflow-y-auto pr-2">
               {allTopics.map((topic) => (
                 <div
                   key={topic}
                   onClick={() => handleTopicToggle(topic)}
-                  className={`flex items-center justify-between p-4 border-2 rounded-lg cursor-pointer transition ${
+                  className={`flex items-center justify-between p-4 border rounded-lg cursor-pointer transition ${
                     selectedTopics.includes(topic)
-                      ? 'border-indigo-500 bg-indigo-50'
-                      : 'border-gray-200 hover:border-gray-400'
+                      ? 'border-indigo-500 bg-indigo-50 shadow-md'
+                      : 'border-gray-200 hover:border-gray-400 hover:bg-gray-50'
                   }`}
                 >
                   <div className="flex flex-col text-left">
-                    <div className="font-semibold text-gray-800">{topic}</div>
-                    <div className="text-sm text-gray-500">{topics[topic].count} preguntas</div>
+                    <div className="font-medium text-gray-800">{topic}</div>
+                    <div className="text-xs text-gray-500">{topics[topic].count} preguntas</div>
                   </div>
                   <input
                     type="checkbox"
@@ -3789,68 +3795,66 @@ const DBDQuizApp = () => {
                 </div>
               ))}
             </div>
-
-            {/* Botón de Inicio del Test */}
-            <button
-              onClick={() => startQuiz()}
-              disabled={selectedTopics.length === 0}
-              className={`w-full px-6 py-4 rounded-lg font-semibold transition text-lg flex items-center justify-center gap-2 ${
-                selectedTopics.length > 0
-                  ? 'bg-green-600 text-white hover:bg-green-700'
-                  : 'bg-gray-400 text-gray-600 cursor-not-allowed'
-              }`}
-            >
-              <List size={20} />
-              Empezar Test ({questionsInSelectedTopics} preguntas)
-            </button>
-            {selectedTopics.length === 0 && (
-              <p className="text-red-500 text-center mt-2">Selecciona al menos un tema para empezar el test.</p>
-            )}
+            
+            <div className="mt-6 pt-4 border-t border-gray-100">
+                {/* Botón de Inicio del Test */}
+                <button
+                onClick={() => startQuiz()}
+                disabled={selectedTopics.length === 0}
+                className={`w-full px-6 py-4 rounded-lg font-bold transition text-lg flex items-center justify-center gap-2 ${
+                    selectedTopics.length > 0
+                    ? 'bg-green-600 text-white hover:bg-green-700 shadow-md shadow-green-300'
+                    : 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                }`}
+                >
+                <TrendingUp size={24} />
+                Empezar Test ({questionsInSelectedTopics} preguntas)
+                </button>
+                {selectedTopics.length === 0 && (
+                <p className="text-red-500 text-center mt-2 text-sm">Selecciona al menos un tema para empezar.</p>
+                )}
+            </div>
           </div>
-          
-          {/* El test completo ya no es un botón separado, es la opción "Seleccionar Todos" */}
         </div>
       </div>
     );
   }
 
   // ------------------------------------------------------------------
-  // El resto de los modos (quiz y results) no necesitan cambios.
+  // RESULTS MODE (Diseño Sencillo y Claro)
   // ------------------------------------------------------------------
-
   if (mode === 'results') {
-    // ... Lógica de resultados sin cambios ...
     const total = score.correct + score.incorrect;
     const percentage = ((score.correct / total) * 100).toFixed(1);
     
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-10 flex items-start justify-center">
-        <div className="bg-white rounded-lg shadow-xl p-8 max-w-4xl mx-auto w-full">
-          <h2 className="text-3xl font-bold text-gray-800 mb-6 text-center">Resultados</h2>
+      <div className="min-h-screen bg-gray-50 p-10 flex items-start justify-center">
+        <div className="bg-white rounded-xl shadow-2xl p-8 max-w-4xl mx-auto w-full border-t-4 border-indigo-600">
+          <h2 className="text-3xl font-extrabold text-gray-900 mb-6 text-center">🎉 Resultados del Test 🎉</h2>
           
-          <div className="grid grid-cols-3 gap-4 mb-8">
-            <div className="bg-blue-50 p-6 rounded-lg text-center">
+          <div className="grid grid-cols-3 gap-6 mb-8">
+            <div className="bg-blue-50 p-6 rounded-xl text-center border-b-4 border-blue-200">
               <div className="text-4xl font-bold text-blue-600">{total}</div>
-              <div className="text-gray-600 mt-2">Total</div>
+              <div className="text-gray-600 mt-2 font-medium">Preguntas Totales</div>
             </div>
-            <div className="bg-green-50 p-6 rounded-lg text-center">
+            <div className="bg-green-50 p-6 rounded-xl text-center border-b-4 border-green-200">
               <div className="text-4xl font-bold text-green-600">{score.correct}</div>
-              <div className="text-gray-600 mt-2">Correctas</div>
+              <div className="text-gray-600 mt-2 font-medium">Aciertos</div>
             </div>
-            <div className="bg-red-50 p-6 rounded-lg text-center">
+            <div className="bg-red-50 p-6 rounded-xl text-center border-b-4 border-red-200">
               <div className="text-4xl font-bold text-red-600">{score.incorrect}</div>
-              <div className="text-gray-600 mt-2">Incorrectas</div>
+              <div className="text-gray-600 mt-2 font-medium">Fallos</div>
             </div>
           </div>
 
-          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-6 rounded-lg text-center mb-6">
-            <div className="text-5xl font-bold text-white mb-2">{percentage}%</div>
-            <div className="text-white text-lg">Porcentaje de Acierto</div>
+          <div className="bg-indigo-600 p-6 rounded-xl text-center mb-8 shadow-xl">
+            <div className="text-6xl font-extrabold text-white mb-2">{percentage}%</div>
+            <div className="text-indigo-200 text-xl font-medium">Rendimiento Total</div>
           </div>
 
           <button
             onClick={resetQuiz}
-            className="w-full bg-indigo-600 text-white px-6 py-4 rounded-lg font-semibold hover:bg-indigo-700 transition text-lg"
+            className="w-full bg-indigo-600 text-white px-6 py-4 rounded-xl font-bold hover:bg-indigo-700 transition text-lg shadow-md shadow-indigo-300"
           >
             Volver al Menú Principal
           </button>
@@ -3859,79 +3863,79 @@ const DBDQuizApp = () => {
     );
   }
 
-  // QUIZ MODE
+  // ------------------------------------------------------------------
+  // QUIZ MODE (Diseño Limpio y Enfocado)
+  // ------------------------------------------------------------------
   const questionContent = questionsData[currentQuestion];
   if (!questionContent) {
     return (
-      <div className="min-h-screen bg-red-100 p-10 flex flex-col items-center justify-center">
+      <div className="min-h-screen bg-red-50 p-10 flex flex-col items-center justify-center">
         <AlertCircle className="text-red-600" size={48} />
         <h3 className="text-xl font-semibold text-red-800 mt-4">Error: Pregunta no encontrada</h3>
         <p className="text-red-700">El ID de la pregunta actual ({currentQuestion}) no existe en el array de datos.</p>
-        <button onClick={resetQuiz} className="mt-4 bg-gray-600 text-white px-4 py-2 rounded">Volver al Menú</button>
+        <button onClick={resetQuiz} className="mt-4 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">Volver al Menú</button>
       </div>
     );
   }
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-10">
-      <div className="max-w-6xl mx-auto">
-        <div className="bg-white rounded-lg shadow-xl p-6 mb-4">
-          <div className="flex justify-between items-center mb-4">
+    <div className="min-h-screen bg-gray-50 p-6 sm:p-10">
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white rounded-xl shadow-2xl p-8 border-t-4 border-indigo-600">
+          
+          {/* Barra Superior e Indicadores */}
+          <div className="flex justify-between items-center mb-6 border-b pb-4 border-gray-100">
             <button
               onClick={resetQuiz}
-              className="text-gray-600 hover:text-gray-800 font-medium"
+              className="text-indigo-600 hover:text-indigo-800 font-medium text-sm transition flex items-center"
             >
-              ← Volver al menú
+              ← Terminar Test
             </button>
-            <div className="flex items-center gap-4">
-              <button
-                onClick={toggleMarkQuestion}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${
-                  markedQuestions.includes(currentQuestion)
-                    ? 'bg-purple-100 text-purple-700 border-2 border-purple-400'
-                    : 'bg-gray-100 text-gray-600 border-2 border-gray-300 hover:border-purple-400'
-                }`}
-                title={markedQuestions.includes(currentQuestion) ? 'Desmarcar pregunta' : 'Marcar para revisar'}
-              >
-                {markedQuestions.includes(currentQuestion) ?
-                (
-                  <BookmarkCheck size={20} />
-                ) : (
-                  <Bookmark size={20} />
-                )}
-                {markedQuestions.includes(currentQuestion) ?
-                'Marcada' : 'Marcar'}
-              </button>
-              <div className="text-sm text-gray-600">
+            <div className="flex items-center gap-6">
+              <div className="flex gap-3 text-base font-semibold">
+                <span className="text-green-600">✓ {score.correct}</span>
+                <span className="text-red-600">✗ {score.incorrect}</span>
+              </div>
+              <div className="text-lg font-bold text-gray-700">
                 {currentQuestionIndex + 1} / {currentQuestions.length}
               </div>
             </div>
           </div>
 
-          <div className="mb-4">
-            <div className="flex gap-4 text-sm">
-              <span className="text-green-600 font-semibold">✓ {score.correct}</span>
-              <span className="text-red-600 font-semibold">✗ {score.incorrect}</span>
-            </div>
-          </div>
-
-          <div className="bg-gray-50 rounded-lg p-1 mb-6">
+          {/* Barra de Progreso */}
+          <div className="bg-gray-200 rounded-full h-2.5 mb-8">
             <div
-              className="bg-indigo-600 h-2 rounded transition-all duration-300"
+              className="bg-indigo-600 h-2.5 rounded-full transition-all duration-300"
               style={{ width: `${((currentQuestionIndex + 1) / currentQuestions.length) * 100}%` }}
             />
           </div>
 
-          <div className="mb-6">
-            <div className="text-sm text-gray-500 mb-2">Pregunta #{currentQuestion} ({questionContent.topic})</div>
+          {/* Área de la Pregunta */}
+          <div className="mb-8">
+            <div className="text-sm text-indigo-500 font-semibold mb-2 flex justify-between items-center">
+                <span>Tema: {questionContent.topic}</span>
+                <button
+                    onClick={toggleMarkQuestion}
+                    className={`flex items-center gap-1 text-sm transition ${
+                      markedQuestions.includes(currentQuestion)
+                        ? 'text-purple-600 font-bold'
+                        : 'text-gray-500 hover:text-purple-600'
+                    }`}
+                    title={markedQuestions.includes(currentQuestion) ? 'Desmarcar pregunta' : 'Marcar para revisar'}
+                >
+                    {markedQuestions.includes(currentQuestion) ?
+                    (<BookmarkCheck size={18} />) : (<Bookmark size={18} />)}
+                    {markedQuestions.includes(currentQuestion) ? 'Marcada' : 'Marcar'}
+                </button>
+            </div>
             
-            <h3 className="text-xl font-semibold text-gray-800 mb-4">
+            <h3 className="text-2xl font-bold text-gray-900 leading-relaxed">
               {questionContent.question}
             </h3>
           </div>
 
-          <div className="space-y-3">
-            {/* Mapea las opciones usando Object.entries(questionContent.options) */}
+          {/* Opciones de Respuesta */}
+          <div className="space-y-4">
             {questionContent.options && Object.entries(questionContent.options).map(([optionKey, optionText]) => {
               const isSelected = selectedAnswer === optionKey;
               const isCorrect = answers[currentQuestion] === optionKey;
@@ -3943,46 +3947,48 @@ const DBDQuizApp = () => {
                   key={optionKey}
                   onClick={() => !showResult && handleAnswer(optionKey)}
                   disabled={showResult}
-                  className={`w-full p-4 rounded-lg border-2 text-left transition ${
+                  className={`w-full p-4 rounded-lg border-2 text-left shadow-sm transition duration-200 ${
                     showCorrect
-                      ? 'bg-green-50 border-green-500'
+                      ? 'bg-green-100 border-green-600'
                       : showIncorrect
-                      ? 'bg-red-50 border-red-500'
+                      ? 'bg-red-100 border-red-600'
                       : isSelected
-                      ? 'border-indigo-500 bg-indigo-50'
-                      : 'border-gray-200 hover:border-indigo-300'
-                  } ${showResult ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                      ? 'border-indigo-600 bg-indigo-50 font-semibold text-indigo-800'
+                      : 'border-gray-200 bg-white hover:border-indigo-300'
+                  } ${showResult ? 'cursor-not-allowed' : 'hover:shadow-md'}`}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold">{optionKey}: {optionText}</span>
-                    {showCorrect && <CheckCircle className="text-green-600" size={24} />}
-                    {showIncorrect && <XCircle className="text-red-600" size={24} />}
+                  <div className="flex items-center justify-between text-base">
+                    <span className="font-semibold mr-3 text-gray-700">{optionKey}:</span>
+                    <span className="flex-1 text-gray-800">{optionText}</span>
+                    {showCorrect && <CheckCircle className="text-green-600 ml-3" size={24} />}
+                    {showIncorrect && <XCircle className="text-red-600 ml-3" size={24} />}
                   </div>
                 </button>
               );
             })}
           </div>
 
+          {/* Feedback y Botón Siguiente */}
           {showResult && (
-            <div className="mt-6">
+            <div className="mt-8 pt-4 border-t border-gray-100">
               <div className={`p-4 rounded-lg ${
                 selectedAnswer === answers[currentQuestion]
                   ? 'bg-green-50 border-2 border-green-500'
                   : 'bg-red-50 border-2 border-red-500'
               }`}>
-                <p className="font-semibold mb-2">
-                  {selectedAnswer === answers[currentQuestion] ? '¡Correcto!' : 'Incorrecto'}
+                <p className="font-bold text-lg mb-1">
+                  {selectedAnswer === answers[currentQuestion] ? '¡Respuesta Correcta! ✅' : 'Respuesta Incorrecta ❌'}
                 </p>
                 <p className="text-sm text-gray-700">
-                  La respuesta correcta es: <strong>{answers[currentQuestion]}</strong>
+                  La respuesta correcta era: <strong>{answers[currentQuestion]}</strong>.
                 </p>
               </div>
 
               <button
                 onClick={nextQuestion}
-                className="w-full mt-4 bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition"
+                className="w-full mt-4 bg-indigo-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-indigo-700 transition text-lg shadow-md shadow-indigo-300"
               >
-                {currentQuestionIndex < currentQuestions.length - 1 ? 'Siguiente Pregunta →' : 'Ver Resultados'}
+                {currentQuestionIndex < currentQuestions.length - 1 ? 'Siguiente Pregunta →' : 'Finalizar y Ver Resultados'}
               </button>
             </div>
           )}
