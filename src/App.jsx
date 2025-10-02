@@ -12,7 +12,6 @@ const DBDQuizApp = () => {
   const [markedQuestions, setMarkedQuestions] = useState([]);
   const [reviewMode, setReviewMode] = useState(false);
   const [markedMode, setMarkedMode] = useState(false);
-
   
   // ------------------------------------------------------------------
   // 1. ESTRUCTURA DE DATOS A RELLENAR (El objeto de Preguntas)
@@ -3675,7 +3674,7 @@ const DBDQuizApp = () => {
   const totalQuestions = Object.keys(questionsData).length;
 
   // ------------------------------------------------------------------
-  // MENU MODE (Diseño Visual Mejorado)
+  // MENU MODE (Ocupando todo el ancho)
   // ------------------------------------------------------------------
   if (mode === 'menu') {
     const allTopics = Object.keys(topics);
@@ -3691,8 +3690,8 @@ const DBDQuizApp = () => {
     
     return (
       <div className="min-h-screen bg-gray-50 p-6 sm:p-10">
-        {/* Aumento el ancho máximo a max-w-5xl para desktop */}
-        <div className="max-w-5xl mx-auto"> 
+        {/* CAMBIO CLAVE: quitamos max-w-5xl y mx-auto. Usamos un div intermedio para centrar el contenido principal para que no se estire demasiado si la pantalla es ENORME */}
+        <div className="max-w-7xl mx-auto"> 
           {/* Cabecera Centrada */}
           <div className="bg-white rounded-xl shadow-lg p-6 mb-8 border-t-4 border-indigo-600 text-center">
             <h1 className="text-3xl font-extrabold text-gray-900 flex items-center justify-center gap-3">
@@ -3772,7 +3771,7 @@ const DBDQuizApp = () => {
             </button>
 
             {/* Lista de Checkboxes por Tema */}
-            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 max-h-96 overflow-y-auto pr-2"> {/* Usamos 2 columnas en sm: y en desktop para mejor aprovechamiento */}
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 max-h-96 overflow-y-auto pr-2">
               {allTopics.map((topic) => (
                 <div
                   key={topic}
@@ -3822,7 +3821,7 @@ const DBDQuizApp = () => {
   }
 
   // ------------------------------------------------------------------
-  // RESULTS MODE
+  // RESULTS MODE (Ocupando todo el ancho)
   // ------------------------------------------------------------------
   if (mode === 'results') {
     const total = score.correct + score.incorrect;
@@ -3830,8 +3829,8 @@ const DBDQuizApp = () => {
     
     return (
       <div className="min-h-screen bg-gray-50 p-10 flex items-start justify-center">
-        {/* Aumento el ancho máximo a max-w-5xl */}
-        <div className="bg-white rounded-xl shadow-2xl p-8 max-w-5xl mx-auto w-full border-t-4 border-indigo-600 text-center"> 
+        {/* CAMBIO CLAVE: quitamos max-w-5xl. Usamos un div intermedio para centrar el contenido principal */}
+        <div className="bg-white rounded-xl shadow-2xl p-8 max-w-7xl mx-auto w-full border-t-4 border-indigo-600 text-center"> 
           <h2 className="text-3xl font-extrabold text-gray-900 mb-6">🎉 Resultados del Test 🎉</h2>
           
           <div className="grid grid-cols-3 gap-6 mb-8">
@@ -3866,7 +3865,7 @@ const DBDQuizApp = () => {
   }
 
   // ------------------------------------------------------------------
-  // QUIZ MODE
+  // QUIZ MODE (Ocupando todo el ancho)
   // ------------------------------------------------------------------
   const questionContent = questionsData[currentQuestion];
   if (!questionContent) {
@@ -3882,8 +3881,8 @@ const DBDQuizApp = () => {
   
   return (
     <div className="min-h-screen bg-gray-50 p-6 sm:p-10">
-      {/* Aumento el ancho máximo a max-w-5xl */}
-      <div className="max-w-5xl mx-auto">
+      {/* CAMBIO CLAVE: quitamos max-w-5xl y mx-auto. Usamos un div intermedio para centrar el contenido principal */}
+      <div className="max-w-7xl mx-auto">
         <div className="bg-white rounded-xl shadow-2xl p-8 border-t-4 border-indigo-600">
           
           {/* Barra Superior e Indicadores */}
@@ -3956,7 +3955,7 @@ const DBDQuizApp = () => {
                       : isSelected && !isCorrect
                       ? 'bg-red-100 border-red-600 font-bold'
                       : highlightIncorrect
-                      ? 'bg-red-50/70 border-red-200' // Rojo muy claro
+                      ? 'bg-red-50/70 border-red-200' 
                       : isSelected
                       ? 'border-indigo-600 bg-indigo-50 font-semibold text-indigo-800'
                       : 'border-gray-200 bg-white hover:border-indigo-300'
