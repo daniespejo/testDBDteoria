@@ -3702,22 +3702,53 @@ const DBDQuizApp = () => {
           </div>
 
           {/* Modos Rápidos (Falladas y Marcadas) */}
-          <div className="bg-white shadow-md rounded-2xl p-4 mb-6">
-  <h2 className="flex items-center text-lg font-semibold text-gray-800 mb-3">
-    <Zap className="w-5 h-5 text-yellow-500 mr-2" />
-    Modos de Repaso Rápido
-  </h2>
-  <div className="space-y-2 text-sm text-gray-600">
-    <p className="flex items-center">
-      <XCircle className="w-4 h-4 text-red-500 mr-2" /> 
-      Falladas: <span className="font-semibold ml-1">{incorrectQuestions.length}</span>
-    </p>
-    <p className="flex items-center">
-      <Bookmark className="w-4 h-4 text-blue-500 mr-2" /> 
-      Marcadas: <span className="font-semibold ml-1">{markedQuestions.length}</span>
-    </p>
-  </div>
-</div>
+          <h2 className="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2">
+            <Zap size={20} className="text-amber-500" />
+            Modos de Repaso Rápido
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            {incorrectQuestions.length > 0 ? (
+              <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-5 shadow-sm">
+                <AlertCircle className="text-amber-600 mb-2" size={24} />
+                <h3 className="font-bold text-amber-900">Falladas ({incorrectQuestions.length})</h3>
+                <p className="text-sm text-gray-700 mb-4">Repasa las preguntas que has respondido incorrectamente.</p>
+                <button
+                  onClick={() => startQuiz(true, false)}
+                  className="w-full bg-amber-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-amber-700 transition text-sm"
+                >
+                  <RotateCcw size={16} className="inline mr-2" />
+                  Iniciar Repaso
+                </button>
+              </div>
+            ) : (
+              <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-5 shadow-sm opacity-60">
+                <AlertCircle className="text-amber-600 mb-2" size={24} />
+                <h3 className="font-bold text-amber-900">Falladas (0)</h3>
+                <p className="text-sm text-gray-500 mb-4">¡Aún no tienes preguntas falladas!</p>
+              </div>
+            )}
+
+            {markedQuestions.length > 0 ? (
+              <div className="bg-purple-50 border-2 border-purple-300 rounded-xl p-5 shadow-sm">
+                <BookmarkCheck className="text-purple-600 mb-2" size={24} />
+                <h3 className="font-bold text-purple-900">Marcadas ({markedQuestions.length})</h3>
+                <p className="text-sm text-gray-700 mb-4">Revisa el contenido que te interesa estudiar de nuevo.</p>
+                <button
+                  onClick={() => startQuiz(false, true)}
+                  className="w-full bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-700 transition text-sm"
+                >
+                  <BookmarkCheck size={16} className="inline mr-2" />
+                  Iniciar Revisión
+                </button>
+              </div>
+            ) : (
+              <div className="bg-purple-50 border-2 border-purple-300 rounded-xl p-5 shadow-sm opacity-60">
+                <BookmarkCheck className="text-purple-600 mb-2" size={24} />
+                <h3 className="font-bold text-purple-900">Marcadas (0)</h3>
+                <p className="text-sm text-gray-500 mb-4">Aún no has marcado ninguna pregunta.</p>
+              </div>
+            )}
+          </div>
 
           {/* Selección de Temas para Test */}
           <div className="bg-white rounded-xl shadow-lg p-6 border-t-4 border-green-600">
@@ -3753,6 +3784,7 @@ const DBDQuizApp = () => {
                 >
                   <div className="flex flex-col text-left">
                     <div className="font-medium text-gray-800">{topic}</div>
+
                   </div>
                   <input
                     type="checkbox"
