@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { BookOpen, AlertCircle, CheckCircle, XCircle, RotateCcw, List, Bookmark, BookmarkCheck } from 'lucide-react';
 
 const DBDQuizApp = () => {
@@ -18,7 +18,7 @@ const DBDQuizApp = () => {
   // ------------------------------------------------------------------
   // Debes llenar este objeto 'questionsData' con todas tus 501 preguntas.
   // La clave (key) del objeto DEBE ser el ID de la pregunta.
-  const questionsData = {
+  const allQuestionsArray = {
     // --- TEMA 0: Introduction (Preguntas 1-27) ---
   {
     id: 1,
@@ -3551,29 +3551,34 @@ const DBDQuizApp = () => {
  };
 
   // ------------------------------------------------------------------
-  // 2. OBJETOS DE MAPEO (Generados a partir de questionsData)
+  // 2. MUEVE EL CÓDIGO DE LAS FUNCIONES DE GENERACIÓN A useMemo
+  //    (Esto genera los objetos que el quiz necesita automáticamente)
   // ------------------------------------------------------------------
-  // Mapeo topics y answers para mantener el funcionamiento del código existente
-  const topics = {
-    "0. Introduction": { start: 1, end: 27 },
-    "1. Relational Translation - Difficulties": { start: 28, end: 67 },
-    "2. Relational Translation - Relationships": { start: 68, end: 104 },
-    "3. Normalization": { start: 105, end: 141 },
-    "4. Data Warehousing and OLAP": { start: 142, end: 190 },
-    "5. NOSQL": { start: 191, end: 220 },
-    "6. Views": { start: 221, end: 266 },
-    "7. Physical Design": { start: 267, end: 310 },
-    "8. Query Optimization - Phases": { start: 311, end: 350 },
-    "9. Query Optimization - Costs": { start: 351, end: 392 },
-    "10. Query Optimization - Join": { start: 393, end: 416 },
-    "11. Parametrization and Tuning": { start: 417, end: 457 },
-    "12. Transactions": { start: 458, end: 501 }
-  };
-  
-  // Generamos 'answers' a partir de 'questionsData' para mantener la lógica existente.
-  const answers = Object.fromEntries(
-    Object.entries(questionsData).map(([id, data]) => [id, data.correctAnswer])
-  );
+  const { questionsData, answers, topics } = useMemo(() => {
+    const data = {};
+    const ans = {};
+    const top = {};
+
+    allQuestionsArray.forEach(q => {
+      // a) Crear el mapeo principal (questionsData)
+      data[q.id] = q;
+      // b) Crear el mapeo de respuestas (answers)
+      ans[q.id] = q.correctAnswer;
+      
+      // c) Crear el mapeo de temas (topics) con rangos de IDs
+      if (!top[q.topic]) {
+        top[q.topic] = { start: q.id, end: q.id };
+      } else {
+        top[q.topic].end = q.id;
+      }
+    });
+
+    return { questionsData: data, answers: ans, topics: top };
+  }, [allQuestionsArray]); // Se recalcula si el array cambia
+
+  // ------------------------------------------------------------------
+  // 3. LÓGICA DEL QUIZ (Mantenida de tu código original)
+  // ------------------------------------------------------------------
   
   // Función para mezclar array (Fisher-Yates shuffle)
   const shuffleArray = (array) => {
@@ -3585,6 +3590,7 @@ const DBDQuizApp = () => {
     return shuffled;
   };
 
+  // Esta función obtiene el listado de IDs a preguntar, basado en el modo
   const getQuestionsForMode = () => {
     let questions = [];
     if (markedMode && markedQuestions.length > 0) {
@@ -3593,17 +3599,20 @@ const DBDQuizApp = () => {
       questions = [...incorrectQuestions];
     } else if (selectedTopic) {
       const range = topics[selectedTopic];
+      // Solo incluimos IDs que realmente existen en el questionsData (mejorando el rango)
       for (let i = range.start; i <= range.end; i++) {
-        questions.push(i);
+        if (questionsData[i]) {
+            questions.push(i);
+        }
       }
     } else {
-      questions = Object.keys(answers).map(Number);
+      questions = Object.keys(answers).map(Number); // Todas las preguntas
     }
     
     return shuffleArray(questions);
   };
 
-  const currentQuestions = getQuestionsForMode();
+  const currentQuestions = useMemo(() => getQuestionsForMode(), [mode, selectedTopic, reviewMode, markedMode, topics]);
   const currentQuestion = currentQuestions[currentQuestionIndex];
   
   const handleAnswer = (answer) => {
@@ -3639,6 +3648,7 @@ const DBDQuizApp = () => {
     setMode('menu');
     setSelectedTopic(null);
     setReviewMode(false);
+    setMarkedMode(false);
   };
 
   const startQuiz = (topic = null, isReview = false, isMarked = false) => {
@@ -3664,7 +3674,8 @@ const DBDQuizApp = () => {
   // MENU MODE 
   // ------------------------------------------------------------------
   if (mode === 'menu') {
-    // ... Código del menú sin cambios ...
+    const totalQuestions = Object.keys(questionsData).length;
+    
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
         <div className="max-w-7xl mx-auto">
@@ -3741,7 +3752,7 @@ const DBDQuizApp = () => {
               onClick={() => startQuiz()}
               className="w-full bg-green-600 text-white px-6 py-4 rounded-lg font-semibold hover:bg-green-700 transition text-lg"
             >
-              Empezar Test Completo ({Object.keys(questionsData).length} preguntas)
+              Empezar Test Completo ({totalQuestions} preguntas)
             </button>
           </div>
         </div>
@@ -3793,10 +3804,21 @@ const DBDQuizApp = () => {
   }
 
   // ------------------------------------------------------------------
-  // QUIZ MODE (Integración del contenido de la pregunta)
+  // QUIZ MODE (Muestra la pregunta actual)
   // ------------------------------------------------------------------
+  // Nos aseguramos de que la pregunta exista, si no, mostramos un error.
   const questionContent = questionsData[currentQuestion];
-
+  if (!questionContent) {
+    return (
+      <div className="min-h-screen bg-red-100 p-10 flex flex-col items-center justify-center">
+        <AlertCircle className="text-red-600" size={48} />
+        <h3 className="text-xl font-semibold text-red-800 mt-4">Error: Pregunta no encontrada</h3>
+        <p className="text-red-700">El ID de la pregunta actual ({currentQuestion}) no existe en el array de datos.</p>
+        <button onClick={resetQuiz} className="mt-4 bg-gray-600 text-white px-4 py-2 rounded">Volver al Menú</button>
+      </div>
+    );
+  }
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-10">
       <div className="max-w-6xl mx-auto">
@@ -3848,17 +3870,16 @@ const DBDQuizApp = () => {
           </div>
 
           <div className="mb-6">
-            <div className="text-sm text-gray-500 mb-2">Pregunta #{currentQuestion} ({questionContent?.topic || 'N/A'})</div>
+            <div className="text-sm text-gray-500 mb-2">Pregunta #{currentQuestion} ({questionContent.topic})</div>
             
             <h3 className="text-xl font-semibold text-gray-800 mb-4">
-              {/* CAMBIO CLAVE: Muestra el texto de la pregunta real */}
-              {questionContent?.question || "Error al cargar la pregunta."}
+              {questionContent.question}
             </h3>
           </div>
 
           <div className="space-y-3">
-            {/* CAMBIO CLAVE: Mapea las opciones que existan en el objeto 'options' de la pregunta */}
-            {questionContent?.options && Object.entries(questionContent.options).map(([optionKey, optionText]) => {
+            {/* Mapea las opciones usando Object.entries(questionContent.options) */}
+            {questionContent.options && Object.entries(questionContent.options).map(([optionKey, optionText]) => {
               const isSelected = selectedAnswer === optionKey;
               const isCorrect = answers[currentQuestion] === optionKey;
               const showCorrect = showResult && isCorrect;
@@ -3880,7 +3901,6 @@ const DBDQuizApp = () => {
                   } ${showResult ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                 >
                   <div className="flex items-center justify-between">
-                    {/* Muestra la clave (A, B) y el texto de la opción */}
                     <span className="font-semibold">{optionKey}: {optionText}</span>
                     {showCorrect && <CheckCircle className="text-green-600" size={24} />}
                     {showIncorrect && <XCircle className="text-red-600" size={24} />}
