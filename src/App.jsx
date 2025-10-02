@@ -1,15 +1,25 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BookOpen, AlertCircle, CheckCircle, XCircle, RotateCcw, List, Bookmark, BookmarkCheck } from 'lucide-react';
 
-// =================================================================================
-// 1. BASE DE DATOS DE PREGUNTAS
-//    Esta estructura reemplaza los antiguos 'topics' y 'answers'.
-//    Cada objeto en el array debe contener: id, topic, question, options y correctAnswer.
-//    HE INCLUIDO UN SUBSET DE EJEMPLO. POR FAVOR, AÑADE LAS 501 PREGUNTAS DEL PDF.
-// =================================================================================
+const DBDQuizApp = () => {
+  const [mode, setMode] = useState('menu');
+  const [selectedTopic, setSelectedTopic] = useState(null);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [selectedAnswer, setSelectedAnswer] = useState(null);
+  const [showResult, setShowResult] = useState(false);
+  const [score, setScore] = useState({ correct: 0, incorrect: 0 });
+  const [incorrectQuestions, setIncorrectQuestions] = useState([]);
+  const [markedQuestions, setMarkedQuestions] = useState([]);
+  const [reviewMode, setReviewMode] = useState(false);
+  const [markedMode, setMarkedMode] = useState(false);
 
-const ALL_QUESTIONS = [
-  // --- TEMA 0: Introduction (Preguntas 1-27) ---
+  // ------------------------------------------------------------------
+  // 1. ESTRUCTURA DE DATOS A RELLENAR (El objeto de Preguntas)
+  // ------------------------------------------------------------------
+  // Debes llenar este objeto 'questionsData' con todas tus 501 preguntas.
+  // La clave (key) del objeto DEBE ser el ID de la pregunta.
+  const questionsData = {
+    // --- TEMA 0: Introduction (Preguntas 1-27) ---
   {
     id: 1,
     topic: "0. Introduction",
@@ -3538,336 +3548,375 @@ const ALL_QUESTIONS = [
     options: { A: "Cert", B: "Fals" },
     correctAnswer: "A"
   }
+ };
+
+  // ------------------------------------------------------------------
+  // 2. OBJETOS DE MAPEO (Generados a partir de questionsData)
+  // ------------------------------------------------------------------
+  // Mapeo topics y answers para mantener el funcionamiento del código existente
+  const topics = {
+    "0. Introduction": { start: 1, end: 27 },
+    "1. Relational Translation - Difficulties": { start: 28, end: 67 },
+    "2. Relational Translation - Relationships": { start: 68, end: 104 },
+    "3. Normalization": { start: 105, end: 141 },
+    "4. Data Warehousing and OLAP": { start: 142, end: 190 },
+    "5. NOSQL": { start: 191, end: 220 },
+    "6. Views": { start: 221, end: 266 },
+    "7. Physical Design": { start: 267, end: 310 },
+    "8. Query Optimization - Phases": { start: 311, end: 350 },
+    "9. Query Optimization - Costs": { start: 351, end: 392 },
+    "10. Query Optimization - Join": { start: 393, end: 416 },
+    "11. Parametrization and Tuning": { start: 417, end: 457 },
+    "12. Transactions": { start: 458, end: 501 }
+  };
   
-];
-
-// Lista de todos los temas disponibles
-const TOPIC_KEYS = [
-    "0. Introduction",
-    "1. Relational Translation - Difficulties",
-    "2. Relational Translation - Relationships",
-    "3. Normalization",
-    "4. Data Warehousing and OLAP",
-    "5. NOSQL",
-    "6. Views",
-    "7. Physical Design",
-    "8. Query Optimization - Phases",
-    "9. Query Optimization - Costs",
-    "10. Query Optimization - Join",
-    "11. Parametrization and Tuning",
-    "12. Transactions"
-];
-
-// Función utilitaria para desordenar un array
-const shuffleArray = (array) => {
-    let newArray = [...array];
-    for (let i = newArray.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+  // Generamos 'answers' a partir de 'questionsData' para mantener la lógica existente.
+  const answers = Object.fromEntries(
+    Object.entries(questionsData).map(([id, data]) => [id, data.correctAnswer])
+  );
+  
+  // Función para mezclar array (Fisher-Yates shuffle)
+  const shuffleArray = (array) => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
-    return newArray;
-};
+    return shuffled;
+  };
 
-const DBDQuizApp = () => {
-    const [mode, setMode] = useState('menu');
-    // Estado para la selección MÚLTIPLE de temas
-    const [selectedTopics, setSelectedTopics] = useState([]); 
-    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-    const [selectedAnswer, setSelectedAnswer] = useState(null);
-    const [showResult, setShowResult] = useState(false);
-    const [score, setScore] = useState({ correct: 0, incorrect: 0 });
-    const [incorrectQuestions, setIncorrectQuestions] = useState([]);
-    const [markedQuestions, setMarkedQuestions] = useState([]);
-    const [reviewMode, setReviewMode] = useState(false);
-    const [markedMode, setMarkedMode] = useState(false);
-    const [currentQuestions, setCurrentQuestions] = useState([]); // Array de preguntas seleccionadas y mezcladas
-
-    // =================================================================================
-    // LÓGICA DE SELECCIÓN DE TEMAS
-    // =================================================================================
-
-    const handleTopicToggle = (topic) => {
-        setSelectedTopics(prev =>
-            prev.includes(topic)
-                ? prev.filter(t => t !== topic)
-                : [...prev, topic]
-        );
-    };
-
-    const startPractice = () => {
-        if (selectedTopics.length === 0) {
-            alert("Por favor, selecciona al menos un tema para empezar.");
-            return;
-        }
-
-        // 1. Filtrar las preguntas por los temas seleccionados
-        const filteredQuestions = ALL_QUESTIONS.filter(q => selectedTopics.includes(q.topic));
-        
-        // 2. Desordenar las preguntas
-        const shuffledQuestions = shuffleArray(filteredQuestions);
-
-        // 3. Inicializar el quiz
-        setCurrentQuestions(shuffledQuestions);
-        setCurrentQuestionIndex(0);
-        setSelectedAnswer(null);
-        setShowResult(false);
-        setScore({ correct: 0, incorrect: 0 });
-        setIncorrectQuestions([]);
-        setReviewMode(false);
-        setMarkedMode(false);
-        setMode('quiz');
-    };
-
-    // =================================================================================
-    // LÓGICA DE NAVEGACIÓN Y RESPUESTA (MANTENIDA)
-    // =================================================================================
-
-    const currentQuestionData = currentQuestions[currentQuestionIndex];
-    const questionNumber = currentQuestionData ? currentQuestionData.id : null;
+  const getQuestionsForMode = () => {
+    let questions = [];
+    if (markedMode && markedQuestions.length > 0) {
+      questions = [...markedQuestions];
+    } else if (reviewMode && incorrectQuestions.length > 0) {
+      questions = [...incorrectQuestions];
+    } else if (selectedTopic) {
+      const range = topics[selectedTopic];
+      for (let i = range.start; i <= range.end; i++) {
+        questions.push(i);
+      }
+    } else {
+      questions = Object.keys(answers).map(Number);
+    }
     
-    // Función para manejar la respuesta
-    const handleAnswerSelection = (answer) => {
-      if (!showResult) {
-        setSelectedAnswer(answer);
-        setShowResult(true);
+    return shuffleArray(questions);
+  };
 
-        const isCorrect = answer === currentQuestionData.correctAnswer;
-
-        if (isCorrect) {
-          setScore(prev => ({ ...prev, correct: prev.correct + 1 }));
-        } else {
-          setScore(prev => ({ ...prev, incorrect: prev.incorrect + 1 }));
-          // Almacenar la pregunta incorrecta para revisión
-          setIncorrectQuestions(prev => [...prev, currentQuestionData]);
-        }
-      }
-    };
-
-    const nextQuestion = () => {
-      if (currentQuestionIndex < currentQuestions.length - 1) {
-        setCurrentQuestionIndex(prev => prev + 1);
-        setSelectedAnswer(null);
-        setShowResult(false);
-      } else {
-        setMode('results');
-      }
-    };
-
-    const resetQuiz = () => {
-      setCurrentQuestions([]);
-      setSelectedTopics([]);
-      setMode('menu');
-    };
-
-    const toggleMarked = () => {
-      if (markedQuestions.some(q => q.id === currentQuestionData.id)) {
-        setMarkedQuestions(prev => prev.filter(q => q.id !== currentQuestionData.id));
-      } else {
-        setMarkedQuestions(prev => [...prev, currentQuestionData]);
-      }
-    };
+  const currentQuestions = getQuestionsForMode();
+  const currentQuestion = currentQuestions[currentQuestionIndex];
+  
+  const handleAnswer = (answer) => {
+    setSelectedAnswer(answer);
+    setShowResult(true);
     
-    const isMarked = currentQuestionData && markedQuestions.some(q => q.id === currentQuestionData.id);
+    const isCorrect = answers[currentQuestion] === answer;
+    if (isCorrect) {
+      setScore(prev => ({ ...prev, correct: prev.correct + 1 }));
+    } else {
+      setScore(prev => ({ ...prev, incorrect: prev.incorrect + 1 }));
+      if (!incorrectQuestions.includes(currentQuestion)) {
+        setIncorrectQuestions(prev => [...prev, currentQuestion]);
+      }
+    }
+  };
 
-    // =================================================================================
-    // RENDERIZADO DE COMPONENTES
-    // =================================================================================
+  const nextQuestion = () => {
+    if (currentQuestionIndex < currentQuestions.length - 1) {
+      setCurrentQuestionIndex(prev => prev + 1);
+      setSelectedAnswer(null);
+      setShowResult(false);
+    } else {
+      setMode('results');
+    }
+  };
+  
+  const resetQuiz = () => {
+    setCurrentQuestionIndex(0);
+    setSelectedAnswer(null);
+    setShowResult(false);
+    setScore({ correct: 0, incorrect: 0 });
+    setMode('menu');
+    setSelectedTopic(null);
+    setReviewMode(false);
+  };
 
-    // Renderiza el menú de selección de temas
-    const renderMenu = () => (
-      <div className="p-8 max-w-xl mx-auto bg-white shadow-xl rounded-xl">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">
-          <BookOpen className="inline-block mr-2 text-indigo-600" size={32} />
-          DBD Practice Test - Selección de Temas
-        </h1>
-        <p className="text-gray-600 mb-6 text-center">Selecciona uno o más temas para practicar:</p>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-96 overflow-y-auto p-4 border rounded-lg bg-gray-50">
-          {TOPIC_KEYS.map(topic => (
-            <div
-              key={topic}
-              className={`flex items-center p-3 rounded-lg cursor-pointer transition ${
-                selectedTopics.includes(topic) ? 'bg-indigo-100 border-indigo-500 border-2' : 'bg-white border hover:bg-gray-100'
-              }`}
-              onClick={() => handleTopicToggle(topic)}
-            >
-              <input
-                type="checkbox"
-                checked={selectedTopics.includes(topic)}
-                onChange={() => handleTopicToggle(topic)}
-                className="form-checkbox h-5 w-5 text-indigo-600 rounded"
-              />
-              <span className="ml-3 text-sm font-medium text-gray-700">{topic}</span>
+  const startQuiz = (topic = null, isReview = false, isMarked = false) => {
+    setSelectedTopic(topic);
+    setReviewMode(isReview);
+    setMarkedMode(isMarked);
+    setCurrentQuestionIndex(0);
+    setSelectedAnswer(null);
+    setShowResult(false);
+    setScore({ correct: 0, incorrect: 0 });
+    setMode('quiz');
+  };
+  
+  const toggleMarkQuestion = () => {
+    if (markedQuestions.includes(currentQuestion)) {
+      setMarkedQuestions(prev => prev.filter(q => q !== currentQuestion));
+    } else {
+      setMarkedQuestions(prev => [...prev, currentQuestion]);
+    }
+  };
+  
+  // ------------------------------------------------------------------
+  // MENU MODE 
+  // ------------------------------------------------------------------
+  if (mode === 'menu') {
+    // ... Código del menú sin cambios ...
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-white rounded-lg shadow-xl p-8 mb-6">
+            <h1 className="text-4xl font-bold text-indigo-900 mb-2">Práctica DBD</h1>
+            <p className="text-gray-600">Disseny de Bases de Dades - Test Interactivo</p>
+          </div>
+
+          {incorrectQuestions.length > 0 && (
+            <div className="bg-amber-50 border-2 border-amber-300 rounded-lg p-6 mb-6">
+              <div className="flex items-center gap-3 mb-3">
+                <AlertCircle className="text-amber-600" size={28} />
+                <h2 className="text-xl font-bold text-amber-900">Preguntas Falladas</h2>
+              </div>
+              <p className="text-gray-700 mb-4">
+                Tienes {incorrectQuestions.length} pregunta{incorrectQuestions.length !== 1 ? 's' : ''} pendiente{incorrectQuestions.length !== 1 ? 's' : ''} de repasar
+              </p>
+              <button
+                onClick={() => startQuiz(null, true, false)}
+                className="bg-amber-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-amber-700 transition flex items-center gap-2"
+              >
+                <RotateCcw size={20} />
+                Repasar Preguntas Falladas
+              </button>
             </div>
-          ))}
-        </div>
+          )}
 
-        <button
-          onClick={startPractice}
-          disabled={selectedTopics.length === 0}
-          className={`w-full mt-8 px-6 py-3 rounded-lg font-semibold transition ${
-            selectedTopics.length > 0
-              ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-          }`}
-        >
-          Empezar Práctica con {selectedTopics.length} Tema(s)
-        </button>
+          {markedQuestions.length > 0 && (
+            <div className="bg-purple-50 border-2 border-purple-300 rounded-lg p-6 mb-6">
+              <div className="flex items-center gap-3 mb-3">
+                <BookmarkCheck className="text-purple-600" size={28} />
+                <h2 className="text-xl font-bold text-purple-900">Preguntas Marcadas</h2>
+              </div>
+              <p className="text-gray-700 mb-4">
+                Tienes {markedQuestions.length} pregunta{markedQuestions.length !== 1 ? 's' : ''} marcada{markedQuestions.length !== 1 ? 's' : ''} para revisar
+              </p>
+              <button
+                onClick={() => startQuiz(null, false, true)}
+                className="bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition flex items-center gap-2"
+              >
+                <BookmarkCheck size={20} />
+                Revisar Preguntas Marcadas
+              </button>
+            </div>
+          )}
+
+          <div className="bg-white rounded-lg shadow-xl p-6 mb-6">
+            <div className="flex items-center gap-3 mb-4">
+              <BookOpen className="text-indigo-600" size={28} />
+              <h2 className="text-2xl font-bold text-gray-800">Practicar por Temas</h2>
+            </div>
+            <div className="grid gap-3">
+              {Object.keys(topics).map((topic) => (
+                <button
+                  key={topic}
+                  onClick={() => startQuiz(topic)}
+                  className="text-left p-4 border-2 border-gray-200 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition"
+                >
+                  <div className="font-semibold text-gray-800">{topic}</div>
+                  <div className="text-sm text-gray-500">
+                    Preguntas {topics[topic].start} - {topics[topic].end} ({topics[topic].end - topics[topic].start + 1} preguntas)
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-xl p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <List className="text-green-600" size={28} />
+              <h2 className="text-2xl font-bold text-gray-800">Todas las Preguntas</h2>
+            </div>
+            <button
+              onClick={() => startQuiz()}
+              className="w-full bg-green-600 text-white px-6 py-4 rounded-lg font-semibold hover:bg-green-700 transition text-lg"
+            >
+              Empezar Test Completo ({Object.keys(questionsData).length} preguntas)
+            </button>
+          </div>
+        </div>
       </div>
     );
+  }
 
-    // Renderiza la pantalla del quiz (el resto del código se mantiene igual, adaptando las referencias a la pregunta actual)
-    if (mode === 'quiz' && currentQuestionData) {
-        // ... (Tu código de renderizado de quiz aquí, adaptado para usar currentQuestionData)
-        
-        return (
-            <div className="p-4 md:p-8 min-h-screen bg-gray-100">
-            <div className="max-w-3xl mx-auto">
-                <div className="bg-white shadow-2xl rounded-xl p-6 md:p-10">
-                <h1 className="text-2xl font-bold text-gray-800 mb-4 flex justify-between items-center">
-                    <span>Pregunta {currentQuestionIndex + 1} de {currentQuestions.length}</span>
-                    <button onClick={toggleMarked} className={`p-2 rounded-full transition ${isMarked ? 'text-yellow-500 bg-yellow-100' : 'text-gray-400 hover:text-yellow-500 hover:bg-gray-100'}`}>
-                      {isMarked ? <BookmarkCheck size={24} /> : <Bookmark size={24} />}
-                    </button>
-                </h1>
-
-                <p className="text-sm font-semibold text-indigo-600 mb-4">{currentQuestionData.topic}</p>
-                <p className="text-xl text-gray-700 mb-8 font-light leading-relaxed">{currentQuestionData.question}</p>
-
-                <div className="space-y-4">
-                    {Object.entries(currentQuestionData.options).map(([key, optionText]) => {
-                    const isSelected = selectedAnswer === key;
-                    const isCorrect = key === currentQuestionData.correctAnswer;
-                    const showCorrect = showResult && isCorrect;
-                    const showIncorrect = showResult && isSelected && !isCorrect;
-
-                    let baseClasses = "w-full text-left p-4 border rounded-lg transition duration-200";
-                    if (showResult) {
-                        if (isCorrect) baseClasses += " bg-green-100 border-green-500 text-green-800 font-semibold";
-                        else if (isSelected) baseClasses += " bg-red-100 border-red-500 text-red-800 font-semibold";
-                        else baseClasses += " bg-white border-gray-200 text-gray-700 opacity-60";
-                    } else {
-                        baseClasses += isSelected ? " bg-indigo-50 border-indigo-500 border-2" : " bg-white border-gray-200 hover:bg-gray-50";
-                    }
-
-                    return (
-                        <button
-                        key={key}
-                        onClick={() => handleAnswerSelection(key)}
-                        disabled={showResult}
-                        className={baseClasses}
-                        >
-                        <div className="flex items-center justify-between">
-                            <span className="font-semibold">{key}. {optionText}</span>
-                            {showCorrect && <CheckCircle className="text-green-600" size={24} />}
-                            {showIncorrect && <XCircle className="text-red-600" size={24} />}
-                        </div>
-                        </button>
-                    );
-                    })}
-                </div>
-
-                {showResult && (
-                    <div className="mt-6">
-                    <div className={`p-4 rounded-lg ${
-                        selectedAnswer === currentQuestionData.correctAnswer
-                        ? 'bg-green-50 border-2 border-green-500'
-                        : 'bg-red-50 border-2 border-red-500'
-                    }`}>
-                        <p className="font-semibold mb-2">
-                        {selectedAnswer === currentQuestionData.correctAnswer ? '¡Correcto!' : 'Incorrecto'}
-                        </p>
-                        <p className="text-sm text-gray-700">
-                        La respuesta correcta es: <strong>{currentQuestionData.correctAnswer}</strong>
-                        </p>
-                    </div>
-
-                    <button
-                        onClick={nextQuestion}
-                        className="w-full mt-4 bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition"
-                    >
-                        {currentQuestionIndex < currentQuestions.length - 1 ? 'Siguiente Pregunta →' : 'Ver Resultados'}
-                    </button>
-                    </div>
-                )}
-                </div>
-
-                <button
-                    onClick={resetQuiz}
-                    className="mt-6 text-sm text-gray-500 hover:text-indigo-600 flex items-center"
-                >
-                    <RotateCcw size={16} className="mr-1" />
-                    Volver al menú de selección de temas
-                </button>
-            </div>
-            </div>
-        );
-    }
+  // ------------------------------------------------------------------
+  // RESULTS MODE 
+  // ------------------------------------------------------------------
+  if (mode === 'results') {
+    const total = score.correct + score.incorrect;
+    const percentage = ((score.correct / total) * 100).toFixed(1);
     
-    // Renderiza la pantalla de resultados
-    if (mode === 'results') {
-        const totalQuestions = currentQuestions.length;
-        const percentage = Math.round((score.correct / totalQuestions) * 100);
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-10 flex items-start justify-center">
+        <div className="bg-white rounded-lg shadow-xl p-8 max-w-4xl mx-auto w-full">
+          <h2 className="text-3xl font-bold text-gray-800 mb-6 text-center">Resultados</h2>
+          
+          <div className="grid grid-cols-3 gap-4 mb-8">
+            <div className="bg-blue-50 p-6 rounded-lg text-center">
+              <div className="text-4xl font-bold text-blue-600">{total}</div>
+              <div className="text-gray-600 mt-2">Total</div>
+            </div>
+            <div className="bg-green-50 p-6 rounded-lg text-center">
+              <div className="text-4xl font-bold text-green-600">{score.correct}</div>
+              <div className="text-gray-600 mt-2">Correctas</div>
+            </div>
+            <div className="bg-red-50 p-6 rounded-lg text-center">
+              <div className="text-4xl font-bold text-red-600">{score.incorrect}</div>
+              <div className="text-gray-600 mt-2">Incorrectas</div>
+            </div>
+          </div>
 
-        return (
-            <div className="p-4 md:p-8 min-h-screen bg-gray-100 flex items-center justify-center">
-            <div className="max-w-md w-full bg-white shadow-2xl rounded-xl p-8 text-center">
-                <h2 className="text-3xl font-bold text-gray-800 mb-4">Práctica Finalizada 🎉</h2>
-                
-                <div className="my-6">
-                    <p className="text-6xl font-extrabold mb-2" style={{ color: percentage >= 70 ? '#10B981' : percentage >= 50 ? '#F59E0B' : '#EF4444' }}>
-                        {percentage}%
-                    </p>
-                    <p className="text-gray-600 text-lg">Puntuación Total</p>
-                </div>
+          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-6 rounded-lg text-center mb-6">
+            <div className="text-5xl font-bold text-white mb-2">{percentage}%</div>
+            <div className="text-white text-lg">Porcentaje de Acierto</div>
+          </div>
 
-                <div className="flex justify-around my-6 text-lg font-medium">
-                    <p className="text-green-600 flex flex-col items-center">
-                        <CheckCircle size={24} className="mb-1" />
-                        Correctas: <span className="text-2xl">{score.correct}</span>
-                    </p>
-                    <p className="text-red-600 flex flex-col items-center">
-                        <XCircle size={24} className="mb-1" />
-                        Incorrectas: <span className="text-2xl">{score.incorrect}</span>
-                    </p>
-                </div>
-                
-                <p className="text-sm text-gray-500 mb-8">
-                    Has respondido {totalQuestions} preguntas.
+          <button
+            onClick={resetQuiz}
+            className="w-full bg-indigo-600 text-white px-6 py-4 rounded-lg font-semibold hover:bg-indigo-700 transition text-lg"
+          >
+            Volver al Menú Principal
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ------------------------------------------------------------------
+  // QUIZ MODE (Integración del contenido de la pregunta)
+  // ------------------------------------------------------------------
+  const questionContent = questionsData[currentQuestion];
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-10">
+      <div className="max-w-6xl mx-auto">
+        <div className="bg-white rounded-lg shadow-xl p-6 mb-4">
+          <div className="flex justify-between items-center mb-4">
+            <button
+              onClick={resetQuiz}
+              className="text-gray-600 hover:text-gray-800 font-medium"
+            >
+              ← Volver al menú
+            </button>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={toggleMarkQuestion}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${
+                  markedQuestions.includes(currentQuestion)
+                    ? 'bg-purple-100 text-purple-700 border-2 border-purple-400'
+                    : 'bg-gray-100 text-gray-600 border-2 border-gray-300 hover:border-purple-400'
+                }`}
+                title={markedQuestions.includes(currentQuestion) ? 'Desmarcar pregunta' : 'Marcar para revisar'}
+              >
+                {markedQuestions.includes(currentQuestion) ?
+                (
+                  <BookmarkCheck size={20} />
+                ) : (
+                  <Bookmark size={20} />
+                )}
+                {markedQuestions.includes(currentQuestion) ?
+                'Marcada' : 'Marcar'}
+              </button>
+              <div className="text-sm text-gray-600">
+                {currentQuestionIndex + 1} / {currentQuestions.length}
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <div className="flex gap-4 text-sm">
+              <span className="text-green-600 font-semibold">✓ {score.correct}</span>
+              <span className="text-red-600 font-semibold">✗ {score.incorrect}</span>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 rounded-lg p-1 mb-6">
+            <div
+              className="bg-indigo-600 h-2 rounded transition-all duration-300"
+              style={{ width: `${((currentQuestionIndex + 1) / currentQuestions.length) * 100}%` }}
+            />
+          </div>
+
+          <div className="mb-6">
+            <div className="text-sm text-gray-500 mb-2">Pregunta #{currentQuestion} ({questionContent?.topic || 'N/A'})</div>
+            
+            <h3 className="text-xl font-semibold text-gray-800 mb-4">
+              {/* CAMBIO CLAVE: Muestra el texto de la pregunta real */}
+              {questionContent?.question || "Error al cargar la pregunta."}
+            </h3>
+          </div>
+
+          <div className="space-y-3">
+            {/* CAMBIO CLAVE: Mapea las opciones que existan en el objeto 'options' de la pregunta */}
+            {questionContent?.options && Object.entries(questionContent.options).map(([optionKey, optionText]) => {
+              const isSelected = selectedAnswer === optionKey;
+              const isCorrect = answers[currentQuestion] === optionKey;
+              const showCorrect = showResult && isCorrect;
+              const showIncorrect = showResult && isSelected && !isCorrect;
+              
+              return (
+                <button
+                  key={optionKey}
+                  onClick={() => !showResult && handleAnswer(optionKey)}
+                  disabled={showResult}
+                  className={`w-full p-4 rounded-lg border-2 text-left transition ${
+                    showCorrect
+                      ? 'bg-green-50 border-green-500'
+                      : showIncorrect
+                      ? 'bg-red-50 border-red-500'
+                      : isSelected
+                      ? 'border-indigo-500 bg-indigo-50'
+                      : 'border-gray-200 hover:border-indigo-300'
+                  } ${showResult ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  <div className="flex items-center justify-between">
+                    {/* Muestra la clave (A, B) y el texto de la opción */}
+                    <span className="font-semibold">{optionKey}: {optionText}</span>
+                    {showCorrect && <CheckCircle className="text-green-600" size={24} />}
+                    {showIncorrect && <XCircle className="text-red-600" size={24} />}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {showResult && (
+            <div className="mt-6">
+              <div className={`p-4 rounded-lg ${
+                selectedAnswer === answers[currentQuestion]
+                  ? 'bg-green-50 border-2 border-green-500'
+                  : 'bg-red-50 border-2 border-red-500'
+              }`}>
+                <p className="font-semibold mb-2">
+                  {selectedAnswer === answers[currentQuestion] ? '¡Correcto!' : 'Incorrecto'}
                 </p>
+                <p className="text-sm text-gray-700">
+                  La respuesta correcta es: <strong>{answers[currentQuestion]}</strong>
+                </p>
+              </div>
 
-                <div className="space-y-3">
-                    <button
-                        onClick={() => { setMode('review'); setReviewMode(true); setCurrentQuestionIndex(0); }}
-                        className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition flex items-center justify-center"
-                    >
-                        <List size={20} className="mr-2" /> Revisar Respuestas Incorrectas ({incorrectQuestions.length})
-                    </button>
-                    
-                    <button
-                        onClick={resetQuiz}
-                        className="w-full bg-gray-200 text-gray-800 px-6 py-3 rounded-lg font-semibold hover:bg-gray-300 transition"
-                    >
-                        <RotateCcw size={20} className="mr-2 inline-block" />
-                        Volver a la Selección de Temas
-                    </button>
-                </div>
+              <button
+                onClick={nextQuestion}
+                className="w-full mt-4 bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition"
+              >
+                {currentQuestionIndex < currentQuestions.length - 1 ? 'Siguiente Pregunta →' : 'Ver Resultados'}
+              </button>
             </div>
-            </div>
-        );
-    }
-
-    // Renderiza el modo de revisión de incorrectas o marcadas (Adaptado para usar currentQuestions)
-    if ((mode === 'review' || mode === 'marked') && currentQuestions.length > 0) {
-        // ... (Tu código de revisión aquí)
-        // Por simplicidad, esta sección usaría la lógica de reviewMode/markedMode
-        // Para este ejemplo, volveremos al menú si se intenta entrar en un modo no implementado completamente aquí.
-        // Dado que el código de revisión es complejo, se sugiere implementarlo usando los arrays incorrectQuestions y markedQuestions.
-        return renderMenu(); // Vuelve al menú, asumiendo que el modo de revisión necesita más trabajo.
-    }
-
-    // Por defecto, renderiza el menú
-    return renderMenu();
+          )}
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default DBDQuizApp;
