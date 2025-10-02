@@ -18,7 +18,7 @@ const DBDQuizApp = () => {
   // ------------------------------------------------------------------
   // Debes llenar este objeto 'questionsData' con todas tus 501 preguntas.
   // La clave (key) del objeto DEBE ser el ID de la pregunta.
-  const allQuestionsArray = {
+  const allQuestionsArray = [
     // --- TEMA 0: Introduction (Preguntas 1-27) ---
   {
     id: 1,
@@ -3548,7 +3548,7 @@ const DBDQuizApp = () => {
     options: { A: "Cert", B: "Fals" },
     correctAnswer: "A"
   }
- };
+ ];
 
   // ------------------------------------------------------------------
   // 2. MUEVE EL CÓDIGO DE LAS FUNCIONES DE GENERACIÓN A useMemo
