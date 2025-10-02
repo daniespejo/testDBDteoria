@@ -3573,7 +3573,7 @@ const DBDQuizApp = () => {
   }, [allQuestionsArray]);
 
   // ------------------------------------------------------------------
-  // 3. LÓGICA DEL QUIZ (Optimizada con useMemo para currentQuestions)
+  // 3. LÓGICA DEL QUIZ 
   // ------------------------------------------------------------------
   
   const shuffleArray = (array) => {
@@ -3693,8 +3693,8 @@ const DBDQuizApp = () => {
       <div className="min-h-screen bg-gray-50 p-6 sm:p-10">
         <div className="max-w-4xl mx-auto">
           {/* Cabecera */}
-          <div className="bg-white rounded-xl shadow-lg p-6 mb-8 border-t-4 border-indigo-600">
-            <h1 className="text-3xl font-extrabold text-gray-900 flex items-center gap-3">
+          <div className="bg-white rounded-xl shadow-lg p-6 mb-8 border-t-4 border-indigo-600 text-center">
+            <h1 className="text-3xl font-extrabold text-gray-900 flex items-center justify-center gap-3">
               <LayoutGrid size={32} className="text-indigo-600" />
               DBD Quiz - Práctica
             </h1>
@@ -3721,7 +3721,7 @@ const DBDQuizApp = () => {
                 </button>
               </div>
             ) : (
-              <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-5 shadow-sm opacity-50">
+              <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-5 shadow-sm opacity-60">
                 <AlertCircle className="text-amber-600 mb-2" size={24} />
                 <h3 className="font-bold text-amber-900">Falladas (0)</h3>
                 <p className="text-sm text-gray-500 mb-4">¡Aún no tienes preguntas falladas!</p>
@@ -3742,7 +3742,7 @@ const DBDQuizApp = () => {
                 </button>
               </div>
             ) : (
-              <div className="bg-purple-50 border-2 border-purple-300 rounded-xl p-5 shadow-sm opacity-50">
+              <div className="bg-purple-50 border-2 border-purple-300 rounded-xl p-5 shadow-sm opacity-60">
                 <BookmarkCheck className="text-purple-600 mb-2" size={24} />
                 <h3 className="font-bold text-purple-900">Marcadas (0)</h3>
                 <p className="text-sm text-gray-500 mb-4">Aún no has marcado ninguna pregunta.</p>
@@ -3773,6 +3773,7 @@ const DBDQuizApp = () => {
             {/* Lista de Checkboxes por Tema */}
             <div className="grid gap-3 max-h-96 overflow-y-auto pr-2">
               {allTopics.map((topic) => (
+                // MEJORA: Toda la tarjeta es clicable
                 <div
                   key={topic}
                   onClick={() => handleTopicToggle(topic)}
@@ -3829,8 +3830,8 @@ const DBDQuizApp = () => {
     
     return (
       <div className="min-h-screen bg-gray-50 p-10 flex items-start justify-center">
-        <div className="bg-white rounded-xl shadow-2xl p-8 max-w-4xl mx-auto w-full border-t-4 border-indigo-600">
-          <h2 className="text-3xl font-extrabold text-gray-900 mb-6 text-center">🎉 Resultados del Test 🎉</h2>
+        <div className="bg-white rounded-xl shadow-2xl p-8 max-w-4xl mx-auto w-full border-t-4 border-indigo-600 text-center"> {/* CENTRADO DE TEXTO */}
+          <h2 className="text-3xl font-extrabold text-gray-900 mb-6">🎉 Resultados del Test 🎉</h2>
           
           <div className="grid grid-cols-3 gap-6 mb-8">
             <div className="bg-blue-50 p-6 rounded-xl text-center border-b-4 border-blue-200">
@@ -3929,7 +3930,7 @@ const DBDQuizApp = () => {
                 </button>
             </div>
             
-            <h3 className="text-2xl font-bold text-gray-900 leading-relaxed">
+            <h3 className="text-2xl font-bold text-gray-900 leading-relaxed text-left">
               {questionContent.question}
             </h3>
           </div>
@@ -3940,7 +3941,8 @@ const DBDQuizApp = () => {
               const isSelected = selectedAnswer === optionKey;
               const isCorrect = answers[currentQuestion] === optionKey;
               const showCorrect = showResult && isCorrect;
-              const showIncorrect = showResult && isSelected && !isCorrect;
+              // MEJORA: Resalta en rojo si es incorrecta y NO es la correcta
+              const highlightIncorrect = showResult && !isCorrect; 
               
               return (
                 <button
@@ -3949,9 +3951,11 @@ const DBDQuizApp = () => {
                   disabled={showResult}
                   className={`w-full p-4 rounded-lg border-2 text-left shadow-sm transition duration-200 ${
                     showCorrect
-                      ? 'bg-green-100 border-green-600'
-                      : showIncorrect
-                      ? 'bg-red-100 border-red-600'
+                      ? 'bg-green-100 border-green-600 font-bold' // Verde claro para la correcta
+                      : isSelected && !isCorrect
+                      ? 'bg-red-100 border-red-600 font-bold' // Rojo para la seleccionada incorrecta
+                      : highlightIncorrect
+                      ? 'bg-red-50/70 border-red-200' // Rojo muy claro para las otras incorrectas
                       : isSelected
                       ? 'border-indigo-600 bg-indigo-50 font-semibold text-indigo-800'
                       : 'border-gray-200 bg-white hover:border-indigo-300'
@@ -3959,9 +3963,9 @@ const DBDQuizApp = () => {
                 >
                   <div className="flex items-center justify-between text-base">
                     <span className="font-semibold mr-3 text-gray-700">{optionKey}:</span>
-                    <span className="flex-1 text-gray-800">{optionText}</span>
+                    <span className="flex-1 text-gray-800 text-left">{optionText}</span> {/* Alineación a la izquierda */}
                     {showCorrect && <CheckCircle className="text-green-600 ml-3" size={24} />}
-                    {showIncorrect && <XCircle className="text-red-600 ml-3" size={24} />}
+                    {showResult && !isCorrect && (isSelected || answers[currentQuestion] === optionKey) && <XCircle className="text-red-600 ml-3" size={24} />}
                   </div>
                 </button>
               );
