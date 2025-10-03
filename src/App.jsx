@@ -3774,9 +3774,6 @@ const DBDQuizApp = () => {
                       <div className="font-semibold text-gray-900 text-base leading-tight mb-1">
                         {topic.split('. ')[1] || topic}
                       </div>
-                      <div className="text-xs text-gray-500 font-medium">
-                        {topics[topic].count} preguntas
-                      </div>
                     </div>
                     <div className={`flex-shrink-0 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all ${
                       selectedTopics.includes(topic)
