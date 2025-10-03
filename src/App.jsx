@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { BookOpen, AlertCircle, CheckCircle, XCircle, RotateCcw, List, Bookmark, BookmarkCheck, LayoutGrid, Zap, TrendingUp } from 'lucide-react';
+import { BookOpen, AlertCircle, CheckCircle, XCircle, RotateCcw, Bookmark, BookmarkCheck, LayoutGrid, Zap, TrendingUp } from 'lucide-react';
 
 const DBDQuizApp = () => {
   const [mode, setMode] = useState('menu');
@@ -3550,9 +3550,7 @@ const DBDQuizApp = () => {
   }
  ];
 
- // ------------------------------------------------------------------
-  // 2. GENERACIÓN AUTOMÁTICA DE DATOS
-  // ------------------------------------------------------------------
+ // Generación automática de datos
   const { questionsData, answers, topics } = useMemo(() => {
     const data = {};
     const ans = {};
@@ -3569,12 +3567,9 @@ const DBDQuizApp = () => {
     });
 
     return { questionsData: data, answers: ans, topics: top };
-  }, [allQuestionsArray]);
+  }, []);
 
-  // ------------------------------------------------------------------
-  // 3. LÓGICA DEL QUIZ 
-  // ------------------------------------------------------------------
-  
+  // Funciones auxiliares
   const shuffleArray = (array) => {
     const shuffled = [...array];
     for (let i = shuffled.length - 1; i > 0; i--) {
@@ -3597,17 +3592,17 @@ const DBDQuizApp = () => {
           questions.push(q.id);
         }
       });
-    } else {
-      questions = Object.keys(answers).map(Number);
     }
     
     return shuffleArray(questions);
   };
 
-  const currentQuestions = useMemo(() => getQuestionsForMode(), [mode, selectedTopics, reviewMode, markedMode, topics]);
+  const currentQuestions = useMemo(() => getQuestionsForMode(), [mode, selectedTopics, reviewMode, markedMode]);
   const currentQuestion = currentQuestions[currentQuestionIndex];
   
   const handleAnswer = (answer) => {
+    if (showResult) return; // Prevenir múltiples clics
+    
     setSelectedAnswer(answer);
     setShowResult(true);
     
@@ -3673,9 +3668,7 @@ const DBDQuizApp = () => {
 
   const totalQuestions = Object.keys(questionsData).length;
 
-  // ------------------------------------------------------------------
-  // MENU MODE (Contenedor más ancho centrado)
-  // ------------------------------------------------------------------
+  // MENÚ PRINCIPAL
   if (mode === 'menu') {
     const allTopics = Object.keys(topics);
     const questionsInSelectedTopics = allQuestionsArray.filter(q => selectedTopics.includes(q.topic)).length;
@@ -3689,19 +3682,16 @@ const DBDQuizApp = () => {
     };
     
     return (
-      <div className="min-h-screen bg-gray-50 p-6 sm:p-10">
-        {/* Usamos max-w-7xl y mx-auto para un ancho muy grande pero aún centrado */}
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6 sm:p-10">
         <div className="max-w-7xl mx-auto w-full"> 
-          {/* Cabecera Centrada */}
-          <div className="bg-white rounded-xl shadow-lg p-6 mb-8 border-t-4 border-indigo-600 text-center">
-            <h1 className="text-3xl font-extrabold text-gray-900 flex items-center justify-center gap-3">
-              <LayoutGrid size={32} className="text-indigo-600" />
+          <div className="bg-white rounded-2xl shadow-xl p-8 mb-8 border-l-8 border-indigo-600 text-center">
+            <h1 className="text-4xl font-black text-gray-900 flex items-center justify-center gap-3 mb-2">
+              <LayoutGrid size={36} className="text-indigo-600" />
               DBD Quiz - Práctica
             </h1>
-            <p className="text-gray-500 mt-1">Disseny de Bases de Dades - Selecciona tu modo de estudio.</p>
+            <p className="text-gray-600 text-lg">Disseny de Bases de Dades - Selecciona tu modo de estudio.</p>
           </div>
 
-          {/* Modos Rápidos (Falladas y Marcadas) */}
           <h2 className="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2">
             <Zap size={20} className="text-amber-500" />
             Modos de Repaso Rápido
@@ -3724,7 +3714,7 @@ const DBDQuizApp = () => {
               <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-5 shadow-sm opacity-60">
                 <AlertCircle className="text-amber-600 mb-2" size={24} />
                 <h3 className="font-bold text-amber-900">Falladas (0)</h3>
-                <p className="text-sm text-gray-500 mb-4">¡Aún no tienes preguntas falladas!</p>
+                <p className="text-sm text-gray-500 mb-4">Aún no tienes preguntas falladas</p>
               </div>
             )}
 
@@ -3750,14 +3740,12 @@ const DBDQuizApp = () => {
             )}
           </div>
 
-          {/* Selección de Temas para Test */}
-          <div className="bg-white rounded-xl shadow-lg p-6 border-t-4 border-green-600">
+          <div className="bg-white rounded-2xl shadow-xl p-8 border-l-8 border-green-600">
             <h2 className="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2">
               <BookOpen size={20} className="text-green-600" />
               Seleccionar Temas
             </h2>
 
-            {/* Botón Seleccionar Todos */}
             <button
               onClick={toggleSelectAll}
               className={`w-full p-3 rounded-lg font-semibold transition text-sm mb-4 border-2 ${
@@ -3770,49 +3758,56 @@ const DBDQuizApp = () => {
                 'Deseleccionar Todos' : `Seleccionar Todos (${totalQuestions} preguntas)`}
             </button>
 
-            {/* Lista de Checkboxes por Tema */}
-            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 max-h-96 overflow-y-auto pr-2">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 max-h-[500px] overflow-y-auto pr-2">
               {allTopics.map((topic) => (
                 <div
                   key={topic}
                   onClick={() => handleTopicToggle(topic)}
-                  className={`flex items-center justify-between p-4 border rounded-lg cursor-pointer transition ${
+                  className={`group relative p-5 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
                     selectedTopics.includes(topic)
-                      ? 'border-indigo-500 bg-indigo-50 shadow-md'
-                      : 'border-gray-200 hover:border-gray-400 hover:bg-gray-50'
+                      ? 'border-indigo-500 bg-gradient-to-br from-indigo-50 to-blue-50 shadow-lg scale-[1.02]'
+                      : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50 hover:shadow-md'
                   }`}
                 >
-                  <div className="flex flex-col text-left">
-                    <div className="font-medium text-gray-800">{topic}</div>
-
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 pr-3">
+                      <div className="font-semibold text-gray-900 text-base leading-tight mb-1">
+                        {topic.split('. ')[1] || topic}
+                      </div>
+                      <div className="text-xs text-gray-500 font-medium">
+                        {topics[topic].count} preguntas
+                      </div>
+                    </div>
+                    <div className={`flex-shrink-0 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all ${
+                      selectedTopics.includes(topic)
+                        ? 'bg-indigo-600 border-indigo-600'
+                        : 'border-gray-300 bg-white group-hover:border-indigo-400'
+                    }`}>
+                      {selectedTopics.includes(topic) && (
+                        <CheckCircle size={16} className="text-white" />
+                      )}
+                    </div>
                   </div>
-                  <input
-                    type="checkbox"
-                    checked={selectedTopics.includes(topic)}
-                    readOnly
-                    className="h-5 w-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                  />
                 </div>
               ))}
             </div>
             
             <div className="mt-6 pt-4 border-t border-gray-100">
-                {/* Botón de Inicio del Test */}
-                <button
+              <button
                 onClick={() => startQuiz()}
                 disabled={selectedTopics.length === 0}
-                className={`w-full px-6 py-4 rounded-lg font-bold transition text-lg flex items-center justify-center gap-2 ${
-                    selectedTopics.length > 0
-                    ? 'bg-green-600 text-white hover:bg-green-700 shadow-md shadow-green-300'
+                className={`w-full px-6 py-4 rounded-xl font-bold transition text-lg flex items-center justify-center gap-2 ${
+                  selectedTopics.length > 0
+                    ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-xl transform hover:scale-[1.02]'
                     : 'bg-gray-400 text-gray-600 cursor-not-allowed'
                 }`}
-                >
+              >
                 <TrendingUp size={24} />
                 Empezar Test ({questionsInSelectedTopics} preguntas)
-                </button>
-                {selectedTopics.length === 0 && (
+              </button>
+              {selectedTopics.length === 0 && (
                 <p className="text-red-500 text-center mt-2 text-sm">Selecciona al menos un tema para empezar.</p>
-                )}
+              )}
             </div>
           </div>
         </div>
@@ -3820,18 +3815,15 @@ const DBDQuizApp = () => {
     );
   }
 
-  // ------------------------------------------------------------------
-  // RESULTS MODE (Contenedor más ancho centrado)
-  // ------------------------------------------------------------------
+  // PANTALLA DE RESULTADOS
   if (mode === 'results') {
     const total = score.correct + score.incorrect;
     const percentage = ((score.correct / total) * 100).toFixed(1);
     
     return (
-      <div className="min-h-screen bg-gray-50 p-10 flex items-start justify-center">
-        {/* Usamos max-w-7xl y mx-auto para un ancho muy grande pero aún centrado */}
-        <div className="bg-white rounded-xl shadow-2xl p-8 max-w-7xl mx-auto w-full border-t-4 border-indigo-600 text-center"> 
-          <h2 className="text-3xl font-extrabold text-gray-900 mb-6">🎉 Resultados del Test 🎉</h2>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-10 flex items-start justify-center">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-7xl mx-auto w-full border-l-8 border-indigo-600 text-center"> 
+          <h2 className="text-3xl font-extrabold text-gray-900 mb-6">Resultados del Test</h2>
           
           <div className="grid grid-cols-3 gap-6 mb-8">
             <div className="bg-blue-50 p-6 rounded-xl text-center border-b-4 border-blue-200">
@@ -3848,14 +3840,14 @@ const DBDQuizApp = () => {
             </div>
           </div>
 
-          <div className="bg-indigo-600 p-6 rounded-xl text-center mb-8 shadow-xl">
+          <div className="bg-gradient-to-r from-indigo-600 to-blue-600 p-6 rounded-xl text-center mb-8 shadow-xl">
             <div className="text-6xl font-extrabold text-white mb-2">{percentage}%</div>
-            <div className="text-indigo-200 text-xl font-medium">Rendimiento Total</div>
+            <div className="text-indigo-100 text-xl font-medium">Rendimiento Total</div>
           </div>
 
           <button
             onClick={resetQuiz}
-            className="w-full bg-indigo-600 text-white px-6 py-4 rounded-xl font-bold hover:bg-indigo-700 transition text-lg shadow-md shadow-indigo-300"
+            className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 text-white px-6 py-4 rounded-xl font-bold hover:from-indigo-700 hover:to-blue-700 transition text-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
           >
             Volver al Menú Principal
           </button>
@@ -3864,9 +3856,7 @@ const DBDQuizApp = () => {
     );
   }
 
-  // ------------------------------------------------------------------
-  // QUIZ MODE (Contenedor más ancho centrado)
-  // ------------------------------------------------------------------
+  // MODO QUIZ
   const questionContent = questionsData[currentQuestion];
   if (!questionContent) {
     return (
@@ -3880,12 +3870,10 @@ const DBDQuizApp = () => {
   }
   
   return (
-    <div className="min-h-screen bg-gray-50 p-6 sm:p-10">
-      {/* Usamos max-w-7xl y mx-auto para un ancho muy grande pero aún centrado */}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6 sm:p-10">
       <div className="max-w-7xl mx-auto w-full">
-        <div className="bg-white rounded-xl shadow-2xl p-8 border-t-4 border-indigo-600">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 border-l-8 border-indigo-600">
           
-          {/* Barra Superior e Indicadores */}
           <div className="flex justify-between items-center mb-6 border-b pb-4 border-gray-100">
             <button
               onClick={resetQuiz}
@@ -3904,31 +3892,29 @@ const DBDQuizApp = () => {
             </div>
           </div>
 
-          {/* Barra de Progreso */}
           <div className="bg-gray-200 rounded-full h-2.5 mb-8">
             <div
-              className="bg-indigo-600 h-2.5 rounded-full transition-all duration-300"
+              className="bg-gradient-to-r from-indigo-600 to-blue-600 h-2.5 rounded-full transition-all duration-300"
               style={{ width: `${((currentQuestionIndex + 1) / currentQuestions.length) * 100}%` }}
             />
           </div>
 
-          {/* Área de la Pregunta */}
           <div className="mb-8">
             <div className="text-sm text-indigo-500 font-semibold mb-2 flex justify-between items-center">
-                <span>Tema: {questionContent.topic}</span>
-                <button
-                    onClick={toggleMarkQuestion}
-                    className={`flex items-center gap-1 text-sm transition ${
-                      markedQuestions.includes(currentQuestion)
-                        ? 'text-purple-600 font-bold'
-                        : 'text-gray-500 hover:text-purple-600'
-                    }`}
-                    title={markedQuestions.includes(currentQuestion) ? 'Desmarcar pregunta' : 'Marcar para revisar'}
-                >
-                    {markedQuestions.includes(currentQuestion) ?
-                    (<BookmarkCheck size={18} />) : (<Bookmark size={18} />)}
-                    {markedQuestions.includes(currentQuestion) ? 'Marcada' : 'Marcar'}
-                </button>
+              <span>Tema: {questionContent.topic}</span>
+              <button
+                onClick={toggleMarkQuestion}
+                className={`flex items-center gap-1 text-sm transition ${
+                  markedQuestions.includes(currentQuestion)
+                    ? 'text-purple-600 font-bold'
+                    : 'text-gray-500 hover:text-purple-600'
+                }`}
+                title={markedQuestions.includes(currentQuestion) ? 'Desmarcar pregunta' : 'Marcar para revisar'}
+              >
+                {markedQuestions.includes(currentQuestion) ?
+                  (<BookmarkCheck size={18} />) : (<Bookmark size={18} />)}
+                {markedQuestions.includes(currentQuestion) ? 'Marcada' : 'Marcar'}
+              </button>
             </div>
             
             <h3 className="text-2xl font-bold text-gray-900 leading-relaxed text-left">
@@ -3936,43 +3922,41 @@ const DBDQuizApp = () => {
             </h3>
           </div>
 
-          {/* Opciones de Respuesta */}
-          <div className="space-y-4">
+          <div className="space-y-3">
             {questionContent.options && Object.entries(questionContent.options).map(([optionKey, optionText]) => {
               const isSelected = selectedAnswer === optionKey;
               const isCorrect = answers[currentQuestion] === optionKey;
               const showCorrect = showResult && isCorrect;
-              const highlightIncorrect = showResult && !isCorrect; 
+              const showIncorrect = showResult && isSelected && !isCorrect;
               
               return (
                 <button
                   key={optionKey}
                   onClick={() => !showResult && handleAnswer(optionKey)}
                   disabled={showResult}
-                  className={`w-full p-4 rounded-lg border-2 text-left shadow-sm transition duration-200 ${
+                  className={`w-full p-5 rounded-xl border-2 text-left transition-all duration-200 ${
                     showCorrect
-                      ? 'bg-green-50 border-green-600 font-bold' 
-                      : isSelected && !isCorrect
-                      ? 'bg-red-100 border-red-600 font-bold'
-                      : highlightIncorrect
-                      ? 'bg-red-50/70 border-red-200' 
+                      ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-500 shadow-lg scale-[1.01]' 
+                      : showIncorrect
+                      ? 'bg-gradient-to-r from-red-50 to-rose-50 border-red-500 shadow-lg'
                       : isSelected
-                      ? 'border-indigo-600 bg-indigo-50 font-semibold text-indigo-800'
-                      : 'border-gray-200 bg-white hover:border-indigo-300'
-                  } ${showResult ? 'cursor-not-allowed' : 'hover:shadow-md'}`}
+                      ? 'border-indigo-500 bg-gradient-to-r from-indigo-50 to-blue-50 shadow-md scale-[1.01]'
+                      : 'border-gray-200 bg-white hover:border-indigo-300 hover:shadow-md hover:scale-[1.01]'
+                  } ${showResult ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                 >
-                  <div className="flex items-center justify-between text-base">
-                    <span className="font-semibold mr-3 text-gray-700">{optionKey}:</span>
-                    <span className="flex-1 text-gray-800 text-left">{optionText}</span> 
-                    {showCorrect && <CheckCircle className="text-green-600 ml-3" size={24} />}
-                    {showResult && !isCorrect && isSelected && <XCircle className="text-red-600 ml-3" size={24} />}
+                  <div className="flex items-center gap-4">
+                    <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center font-bold text-gray-700">
+                      {optionKey}
+                    </span>
+                    <span className="flex-1 text-gray-800 text-base leading-relaxed">{optionText}</span>
+                    {showCorrect && <CheckCircle className="text-green-600 flex-shrink-0" size={28} />}
+                    {showIncorrect && <XCircle className="text-red-600 flex-shrink-0" size={28} />}
                   </div>
                 </button>
               );
             })}
           </div>
 
-          {/* Feedback y Botón Siguiente */}
           {showResult && (
             <div className="mt-8 pt-4 border-t border-gray-100">
               <div className={`p-4 rounded-lg ${
@@ -3981,7 +3965,7 @@ const DBDQuizApp = () => {
                   : 'bg-red-50 border-2 border-red-500'
               }`}>
                 <p className="font-bold text-lg mb-1">
-                  {selectedAnswer === answers[currentQuestion] ? '¡Respuesta Correcta! ✅' : 'Respuesta Incorrecta ❌'}
+                  {selectedAnswer === answers[currentQuestion] ? 'Respuesta Correcta' : 'Respuesta Incorrecta'}
                 </p>
                 <p className="text-sm text-gray-700">
                   La respuesta correcta era: <strong>{answers[currentQuestion]}</strong>.
@@ -3990,9 +3974,11 @@ const DBDQuizApp = () => {
 
               <button
                 onClick={nextQuestion}
-                className="w-full mt-4 bg-indigo-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-indigo-700 transition text-lg shadow-md shadow-indigo-300"
+                className="w-full mt-6 bg-gradient-to-r from-indigo-600 to-blue-600 text-white px-8 py-4 rounded-xl font-bold hover:from-indigo-700 hover:to-blue-700 transition-all text-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
               >
-                {currentQuestionIndex < currentQuestions.length - 1 ? 'Siguiente Pregunta →' : 'Finalizar y Ver Resultados'}
+                {currentQuestionIndex < currentQuestions.length - 1 ? 
+                  'Siguiente Pregunta →' : 
+                  'Ver Resultados Finales'}
               </button>
             </div>
           )}
