@@ -3683,7 +3683,7 @@ const DBDQuizApp = () => {
     
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6 sm:p-10">
-        <div className="max-w-7xl mx-auto w-full"> 
+        <div className="max-w-7xl mx-auto w-full px-4"> 
           <div className="bg-white rounded-2xl shadow-xl p-8 mb-8 border-l-8 border-indigo-600 text-center">
             <h1 className="text-4xl font-black text-gray-900 flex items-center justify-center gap-3 mb-2">
               <LayoutGrid size={36} className="text-indigo-600" />
@@ -3819,7 +3819,7 @@ const DBDQuizApp = () => {
     
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-10 flex items-start justify-center">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-7xl mx-auto w-full border-l-8 border-indigo-600 text-center"> 
+        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-4xl mx-auto w-full border-l-8 border-indigo-600 text-center"> 
           <h2 className="text-3xl font-extrabold text-gray-900 mb-6">Resultados del Test</h2>
           
           <div className="grid grid-cols-3 gap-6 mb-8">
@@ -3868,7 +3868,7 @@ const DBDQuizApp = () => {
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6 sm:p-10">
-      <div className="max-w-7xl mx-auto w-full">
+      <div className="max-w-5xl mx-auto w-full px-4">
         <div className="bg-white rounded-2xl shadow-2xl p-8 border-l-8 border-indigo-600">
           
           <div className="flex justify-between items-center mb-6 border-b pb-4 border-gray-100">
